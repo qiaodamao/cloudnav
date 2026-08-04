@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Settings, Clock, LayoutGrid, MessageCircle, Cloud, BookOpen, Upload, CloudCog, LogOut, Loader2, Plus, Trash2, Search } from 'lucide-react';
-import { AIConfig, PasswordExpiryConfig, TickerConfig, WeatherConfig, WeatherProvider, TickerSource, SearchConfig, IconConfig } from '../types';
+import { X, Save, Settings, Clock, LayoutGrid, Cloud, BookOpen, Upload, CloudCog, LogOut, Loader2, Plus, Trash2, Search } from 'lucide-react';
+import { AIConfig, PasswordExpiryConfig, WeatherConfig, WeatherProvider, SearchConfig, IconConfig } from '../types';
 import { toast } from './Toast';
 import { SEARCH_ENGINES, DEFAULT_ICON_CONFIG } from '../src/constants';
 
 interface SettingsData {
   ai: AIConfig;
   passwordExpiry: PasswordExpiryConfig;
-  ticker: TickerConfig;
   weather: WeatherConfig;
   showPinnedWebsites: boolean;
   defaultViewMode: 'compact' | 'detailed';
@@ -27,11 +26,9 @@ const DEFAULT_SETTINGS: SettingsData = {
     providers: {
       google: { apiKey: '', baseUrl: 'https://generativelanguage.googleapis.com', model: 'gemini-3.1-flash-lite' },
       openai: { apiKey: '', baseUrl: 'https://api.openai.com/v1', model: 'gpt-5-nano' },
-      claude: { apiKey: '', baseUrl: 'https://api.anthropic.com', model: 'claude-haiku-4-5' },
     }
   },
   passwordExpiry: { value: 1, unit: 'week' },
-  ticker: { enabled: false, source: 'mastodon', customItems: [] },
   weather: { enabled: false, provider: 'jinrishici', unit: 'celsius' },
   showPinnedWebsites: true,
   defaultViewMode: 'detailed',
@@ -42,7 +39,6 @@ const DEFAULT_SETTINGS: SettingsData = {
 const AI_MODELS: Record<string, { label: string; defaultModel: string; defaultBaseUrl: string }> = {
   google: { label: 'Google Gemini', defaultModel: 'gemini-3.1-flash-lite', defaultBaseUrl: 'https://generativelanguage.googleapis.com' },
   openai: { label: 'OpenAI', defaultModel: 'gpt-5-nano', defaultBaseUrl: 'https://api.openai.com/v1' },
-  claude: { label: 'Claude', defaultModel: 'claude-haiku-4-5', defaultBaseUrl: 'https://api.anthropic.com' },
 };
 
 interface SettingsModalProps {
@@ -62,7 +58,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [migrating, setMigrating] = useState(false);
-  const [mastodonInput, setMastodonInput] = useState('');
 
   useEffect(() => {
     if (!isOpen) return;
@@ -95,18 +90,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             ...prev,
             ai: aiConfig,
             passwordExpiry: appConfig.website?.passwordExpiry || prev.passwordExpiry,
-            ticker: appConfig.ticker || appConfig.mastodon || prev.ticker,
             weather: appConfig.weather || prev.weather,
             showPinnedWebsites: appConfig.ui?.showPinnedWebsites ?? prev.showPinnedWebsites,
             defaultViewMode: appConfig.view?.defaultMode || appConfig.view?.mode || prev.defaultViewMode,
             search: appConfig.search || prev.search,
             icon: appConfig.icon || prev.icon || DEFAULT_ICON_CONFIG,
           }));
-          
-          const ticker = appConfig.ticker || appConfig.mastodon;
-          if (ticker?.mastodonUsername && ticker?.mastodonInstance) {
-            setMastodonInput(`@${ticker.mastodonUsername}@${ticker.mastodonInstance}`);
-          }
         }
       } catch (e) {
         console.error('Failed to load settings:', e);
@@ -121,18 +110,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     if (!authToken) { toast.error('请先登录'); return; }
     setSaving(true);
     try {
-      const tickerConfig = { ...settings.ticker };
-      if (tickerConfig.source === 'mastodon' && mastodonInput) {
-        const match = mastodonInput.match(/^@?([^@]+)@(.+)$/);
-        if (match) { tickerConfig.mastodonUsername = match[1]; tickerConfig.mastodonInstance = match[2]; }
-      }
-
-      const finalSettings = { ...settings, ticker: tickerConfig };
+      const finalSettings = { ...settings };
 
       const sections: Record<string, any> = {
         ai: finalSettings.ai,
         website: { passwordExpiry: finalSettings.passwordExpiry },
-        mastodon: finalSettings.ticker,
         weather: finalSettings.weather,
         search: finalSettings.search,
         icon: finalSettings.icon,
@@ -410,109 +392,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
               </section>
 
-              {/* 滚动 Ticker */}
-              <section className="pt-6 border-t border-slate-200 dark:border-slate-700">
-                <h4 className="font-bold dark:text-white mb-3 text-sm flex items-center gap-2">
-                  <MessageCircle size={16} /> 滚动 Ticker
-                </h4>
-                <div className="space-y-4">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" checked={settings.ticker.enabled} onChange={(e) => update('ticker', { ...settings.ticker, enabled: e.target.checked })} className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-                    <span className="text-sm text-slate-700 dark:text-slate-300">启用滚动 Ticker</span>
-                  </label>
-                  {settings.ticker.enabled && (
-                    <div className="space-y-4 pl-8">
-                      <div>
-                        <label className="block text-xs font-medium text-slate-500 mb-1">数据来源</label>
-                        <select value={settings.ticker.source} onChange={(e) => update('ticker', { ...settings.ticker, source: e.target.value as TickerSource })} className="w-full h-11 px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none">
-                          <option value="mastodon">Mastodon</option>
-                          <option value="memos">Memos</option>
-                          <option value="custom">自定义</option>
-                        </select>
-                      </div>
-
-                      {/* Mastodon 配置 */}
-                      {settings.ticker.source === 'mastodon' && (
-                        <div className="space-y-3">
-                          <div>
-                            <label className="block text-xs font-medium text-slate-500 mb-1">用户地址</label>
-                            <input type="text" value={mastodonInput} onChange={(e) => setMastodonInput(e.target.value)} placeholder="@username@instance.com" className="w-full h-11 px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-slate-500 mb-1">显示条数</label>
-                            <input type="number" value={settings.ticker.mastodonLimit || 10} onChange={(e) => update('ticker', { ...settings.ticker, mastodonLimit: parseInt(e.target.value) || 10 })} min={1} max={40} className="w-24 h-11 px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input type="checkbox" checked={settings.ticker.mastodonExcludeReplies !== false} onChange={(e) => update('ticker', { ...settings.ticker, mastodonExcludeReplies: e.target.checked })} className="w-4 h-4 rounded border-slate-300 text-blue-600" />
-                              <span className="text-xs text-slate-600 dark:text-slate-400">排除回复</span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input type="checkbox" checked={settings.ticker.mastodonExcludeReblogs !== false} onChange={(e) => update('ticker', { ...settings.ticker, mastodonExcludeReblogs: e.target.checked })} className="w-4 h-4 rounded border-slate-300 text-blue-600" />
-                              <span className="text-xs text-slate-600 dark:text-slate-400">排除转嘟</span>
-                            </label>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Memos 配置 */}
-                      {settings.ticker.source === 'memos' && (
-                        <div className="space-y-3">
-                          <div>
-                            <label className="block text-xs font-medium text-slate-500 mb-1">Memos 地址</label>
-                            <input type="text" value={settings.ticker.memosHost || ''} onChange={(e) => update('ticker', { ...settings.ticker, memosHost: e.target.value })} placeholder="https://memos.example.com" className="w-full h-11 px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-slate-500 mb-1">API Token</label>
-                            <input type="password" value={settings.ticker.memosToken || ''} onChange={(e) => update('ticker', { ...settings.ticker, memosToken: e.target.value })} className="w-full h-11 px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-slate-500 mb-1">用户名</label>
-                            <input type="text" value={settings.ticker.memosCreator || ''} onChange={(e) => update('ticker', { ...settings.ticker, memosCreator: e.target.value })} placeholder="john" className="w-full h-11 px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
-                            <p className="text-[10px] text-slate-400 mt-1">只填用户名，如 john，系统自动拼接为 users/john</p>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-slate-500 mb-1">可见性</label>
-                            <select value={settings.ticker.memosVisibility || 'PUBLIC'} onChange={(e) => update('ticker', { ...settings.ticker, memosVisibility: e.target.value as 'PUBLIC' | 'PROTECTED' | 'PRIVATE' })} className="w-full h-11 px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none">
-                              <option value="PUBLIC">公开 (PUBLIC)</option>
-                              <option value="PROTECTED">受保护 (PROTECTED)</option>
-                              <option value="PRIVATE">私有 (PRIVATE)</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-slate-500 mb-1">显示条数</label>
-                            <input type="number" value={settings.ticker.memosLimit || 10} onChange={(e) => update('ticker', { ...settings.ticker, memosLimit: parseInt(e.target.value) || 10 })} min={1} className="w-24 h-11 px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 自定义配置 */}
-                      {settings.ticker.source === 'custom' && (
-                        <div className="space-y-2">
-                          <label className="block text-xs font-medium text-slate-500 mb-1">自定义内容</label>
-                          {(settings.ticker.customItems || []).map((item, index) => (
-                            <div key={index} className="flex gap-2">
-                              <input type="text" value={item} onChange={(e) => {
-                                const newItems = [...(settings.ticker.customItems || [])];
-                                newItems[index] = e.target.value;
-                                update('ticker', { ...settings.ticker, customItems: newItems });
-                              }} className="flex-1 p-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none text-sm" />
-                              <button onClick={() => {
-                                const newItems = (settings.ticker.customItems || []).filter((_, i) => i !== index);
-                                update('ticker', { ...settings.ticker, customItems: newItems });
-                              }} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"><Trash2 size={14} /></button>
-                            </div>
-                          ))}
-                          <button onClick={() => update('ticker', { ...settings.ticker, customItems: [...(settings.ticker.customItems || []), ''] })} className="flex items-center gap-1 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
-                            <Plus size={14} /> 添加项目
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </section>
-
               {/* 天气设置 */}
               <section className="pt-6 border-t border-slate-200 dark:border-slate-700">
                 <h4 className="font-bold dark:text-white mb-3 text-sm flex items-center gap-2">
@@ -626,7 +505,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       <label className="block text-xs font-medium text-slate-500">AI 提供商</label>
                       {settings.ai.provider === 'google' && <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-[10px] text-blue-500 hover:underline">Google Gemini API</a>}
                       {settings.ai.provider === 'openai' && <a href="https://platform.openai.com/docs/api-reference" target="_blank" rel="noreferrer" className="text-[10px] text-blue-500 hover:underline">OpenAI API</a>}
-                      {settings.ai.provider === 'claude' && <a href="https://docs.anthropic.com/en/api/getting-started" target="_blank" rel="noreferrer" className="text-[10px] text-blue-500 hover:underline">Claude API</a>}
                     </div>
                     <select value={settings.ai.provider} onChange={(e) => {
                       updateAI('provider', e.target.value as any);

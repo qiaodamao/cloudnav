@@ -74,14 +74,11 @@ export const generateLinkDescription = async (title: string, url: string, config
             contents: `I have a website bookmark. ${prompt}`,
         });
         return response.text ? response.text.trim() : "无法生成描述";
-    } else if (config.provider === 'claude') {
-        const result = await callClaudeAPI(config, "You are a helpful assistant that summarizes website bookmarks.", prompt);
-        return result || "生成描述失败";
     } else {
         // OpenAI Compatible
         const result = await callOpenAICompatible(
-            config, 
-            "You are a helpful assistant that summarizes website bookmarks.", 
+            config,
+            "You are a helpful assistant that summarizes website bookmarks.",
             prompt
         );
         return result || "生成描述失败";

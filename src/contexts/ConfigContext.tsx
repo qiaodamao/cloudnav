@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import {
   AppConfig, AIConfig, WebsiteConfig, WebDavConfig,
-  SearchConfig, IconConfig, TickerConfig, WeatherConfig,
+  SearchConfig, IconConfig, WeatherConfig,
 } from '../../types';
 import { STORAGE_KEYS, DEFAULT_ICON_CONFIG } from '../constants';
 import { configManager } from '../utils/configManager';
@@ -13,7 +13,6 @@ interface ConfigState {
   webdav: WebDavConfig;
   search: SearchConfig;
   icon: IconConfig;
-  ticker: TickerConfig;
   weather: WeatherConfig;
   viewMode: 'compact' | 'detailed';
   showPinnedWebsites: boolean;
@@ -26,7 +25,6 @@ type ConfigAction =
   | { type: 'SET_WEBDAV'; payload: WebDavConfig }
   | { type: 'SET_SEARCH'; payload: SearchConfig }
   | { type: 'SET_ICON'; payload: IconConfig }
-  | { type: 'SET_TICKER'; payload: TickerConfig }
   | { type: 'SET_WEATHER'; payload: WeatherConfig }
   | { type: 'SET_VIEW_MODE'; payload: 'compact' | 'detailed' }
   | { type: 'SET_SHOW_PINNED'; payload: boolean }
@@ -40,7 +38,6 @@ interface ConfigContextValue extends ConfigState {
   setWebDav: (config: WebDavConfig) => void;
   setSearch: (config: SearchConfig) => void;
   setIcon: (config: IconConfig) => void;
-  setMastodon: (config: TickerConfig) => void;
   setWeather: (config: WeatherConfig) => void;
   setViewMode: (mode: 'compact' | 'detailed') => void;
   setShowPinned: (show: boolean) => void;
@@ -72,13 +69,6 @@ const defaultSearch: SearchConfig = {
   defaultEngine: 'google',
 };
 
-const defaultTicker: TickerConfig = {
-  enabled: false, source: 'mastodon',
-  mastodonInstance: '', mastodonUsername: '', mastodonLimit: 10, mastodonExcludeReplies: true, mastodonExcludeReblogs: false,
-  memosHost: '', memosToken: '', memosLimit: 10,
-  customItems: [],
-};
-
 const defaultWeather: WeatherConfig = {
   enabled: true, provider: 'jinrishici',
   unit: 'celsius',
@@ -92,7 +82,6 @@ function configReducer(state: ConfigState, action: ConfigAction): ConfigState {
     case 'SET_WEBDAV': return { ...state, webdav: action.payload };
     case 'SET_SEARCH': return { ...state, search: action.payload };
     case 'SET_ICON': return { ...state, icon: action.payload };
-    case 'SET_TICKER': return { ...state, ticker: action.payload };
     case 'SET_WEATHER': return { ...state, weather: action.payload };
     case 'SET_VIEW_MODE': return { ...state, viewMode: action.payload };
     case 'SET_SHOW_PINNED': return { ...state, showPinnedWebsites: action.payload };
@@ -118,7 +107,6 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     webdav: configManager.getWebDavConfig() || defaultWebDav,
     search: configManager.getSearchConfig() || defaultSearch,
     icon: configManager.getIconConfig() || DEFAULT_ICON_CONFIG,
-    ticker: configManager.getMastodonConfig() || defaultTicker,
     weather: configManager.getWeatherConfig() || defaultWeather,
     viewMode: (savedViewMode === 'detailed' || savedViewMode === 'compact')
       ? savedViewMode
@@ -164,11 +152,6 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     configManager.updateIconConfig(config);
   }, []);
 
-  const setMastodon = useCallback((config: TickerConfig) => {
-    dispatch({ type: 'SET_TICKER', payload: config });
-    configManager.updateMastodonConfig(config);
-  }, []);
-
   const setWeather = useCallback((config: WeatherConfig) => {
     dispatch({ type: 'SET_WEATHER', payload: config });
     configManager.updateWeatherConfig(config);
@@ -210,7 +193,6 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
       webdav: config.webdav || defaultWebDav,
       search: config.search || defaultSearch,
       icon: config.icon || DEFAULT_ICON_CONFIG,
-      ticker: config.ticker || config.mastodon || defaultTicker,
       weather: config.weather || defaultWeather,
     }});
   }, []);
@@ -230,7 +212,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
       ...state,
       initConfig,
       setAI, setWebsite, setWebDav, setSearch, setIcon,
-      setMastodon, setWeather, setViewMode, setShowPinned, setDarkMode,
+      setWeather, setViewMode, setShowPinned, setDarkMode,
       syncConfigToKV, loadConfigFromKV,
     }}>
       {children}

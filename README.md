@@ -1,4 +1,4 @@
-# 蜗牛个人导航 (CloudNav)
+# 个人导航 (CloudNav)
 
 > [!WARNING]
 > **本项目完全基于 AI 构建，我对项目中的代码一无所知。如果有 Bug 和功能需求请 Fork 后自行处理。**
@@ -21,7 +21,7 @@
 - **图标缓存**：可抓取网站图标并缓存到 EdgeOne Pages Blob / Cloudflare R2
 - **AI 辅助**：集成 Gemini / OpenAI 兼容 API，自动填充链接描述、智能分类建议
 - **数据导入导出**：Chrome 书签 HTML / JSON 备份 / WebDAV 云同步
-- **丰富小组件**：Mastodon / Memos 动态滚动条、实时天气（和风天气）
+- **丰富小组件**：实时天气（和风天气）
 - **个性化**：深色/浅色模式（自动检测系统偏好）、紧凑/详细视图、自定义图标
 - **卡片动效**：从图标提取主色调，hover 时显示彩色边框 and 光晕
 - **骨架屏加载**：加载时显示骨架屏占位，卡片交错淡入动画
@@ -30,8 +30,7 @@
 
 你可以配合 **Chrome** /  **Firefox** 浏览器插件来快速添加书签：
 
-- [eallion/chrome-extension-favorite](https://github.com/eallion/chrome-extension-favorite)
-- [eallion/firefox-extension-favorite](https://github.com/eallion/firefox-extension-favorite)
+- [qiaodamao/bookmark-assistant](https://github.com/qiaodamao/bookmark-assistant)
 
 [![](screenshots/ChromeStore.png)](https://chromewebstore.google.com/detail/nepjakfedadjkpjpideoaobngonilmoi) [![](screenshots/FirefoxAddon.png)](https://addons.mozilla.org/zh-CN/firefox/addon/favorite-assistant/)
 

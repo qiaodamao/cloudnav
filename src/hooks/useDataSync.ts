@@ -65,7 +65,7 @@ export function useDataSync() {
 
   // 从 KV 加载各个配置
   const loadConfigsFromCloud = useCallback(async () => {
-    const configKeys = ['search', 'website', 'ai', 'weather', 'mastodon', 'icon'];
+    const configKeys = ['search', 'website', 'ai', 'weather', 'icon'];
     const configMap: Record<string, any> = {};
 
     await Promise.all(configKeys.map(async (key) => {
@@ -74,9 +74,7 @@ export function useDataSync() {
         if (res.ok) {
           const data = await res.json();
           if (data && Object.keys(data).length > 0) {
-            // 将后端命名的 'mastodon' 映射为前端统一使用的 'ticker'
-            const configKey = key === 'mastodon' ? 'ticker' : key;
-            configMap[configKey] = data;
+            configMap[key] = data;
           }
         }
       } catch (e) {

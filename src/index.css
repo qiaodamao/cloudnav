@@ -271,11 +271,6 @@ html.dark .dark\:shadow-sm {
   --tw-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3) !important;
 }
 
-/* Mastodon 和天气组件 */
-html.dark .dark\:bg-slate-700\/30 {
-  background-color: rgba(51, 65, 85, 0.6) !important;
-}
-
 /* 天气 tooltip */
 html.dark .dark\:bg-slate-600 {
   background-color: var(--github-dimmed-surface) !important;

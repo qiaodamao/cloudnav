@@ -3,7 +3,6 @@ import { Search, X, Plus, Moon, Sun, Menu, Settings, Upload, CheckSquare, LogOut
 import { useConfigContext } from '../../contexts/ConfigContext';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useLinksContext } from '../../contexts/LinksContext';
-import MastodonTicker from '../../../components/MastodonTicker';
 import WeatherDisplay from '../../../components/WeatherDisplay';
 import { useState, useRef, useEffect } from 'react';
 import { SEARCH_ENGINES } from '../../constants';
@@ -157,7 +156,7 @@ export function Header({
   isEditMode, onToggleEditMode,
   visitorEngineId, onVisitorEngineChange,
 }: HeaderProps) {
-  const { ai, darkMode, setDarkMode, viewMode, setViewMode, ticker, weather, search } = useConfigContext();
+  const { ai, darkMode, setDarkMode, viewMode, setViewMode, weather, search } = useConfigContext();
   const { authToken, logout } = useAuthContext();
   const { syncStatus } = useLinksContext();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -263,12 +262,7 @@ export function Header({
         <div className="flex items-center gap-2">
           {/* Ticker & Search Shared Container */}
           <div className="hidden md:flex items-center gap-2 w-[360px] lg:w-[480px] xl:w-[640px] shrink-0">
-            {/* 1. Ticker */}
-            <div className="min-w-0 overflow-hidden w-[100px] lg:w-[140px] xl:w-[180px] shrink-0">
-              <MastodonTicker config={ticker} />
-            </div>
-
-            {/* 2. Search */}
+            {/* Search */}
             <div className="min-w-0 flex-1">
               <HeaderSearch
                 searchQuery={searchQuery}

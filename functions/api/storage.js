@@ -9,7 +9,7 @@ const STORAGE_KEYS = {
   CATEGORIES_CONFIG_KEY: 'cate_config',
 };
 
-const CONFIG_SECTIONS = ['ai', 'website', 'mastodon', 'weather', 'search', 'icon', 'view', 'ui'];
+const CONFIG_SECTIONS = ['ai', 'website', 'weather', 'search', 'icon', 'view', 'ui'];
 
 async function readConfigSection(kv, section) {
   const sectionStr = await kv.get(`config:${section}`);

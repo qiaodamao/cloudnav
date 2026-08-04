@@ -46,6 +46,9 @@ export interface AIProviderConfig {
   model: string;
 }
 
+// AI 服务提供商
+export type AIProvider = 'google' | 'openai';
+
 export interface AIConfig {
   provider: AIProvider;
   apiKey: string;
@@ -121,29 +124,6 @@ export interface SearchConfig {
   customEngineIcon?: string; // 自定义搜索引擎 Logo (URL 或 SVG 代码)
 }
 
-// 滚动 Ticker 来源类型
-export type TickerSource = 'mastodon' | 'memos' | 'custom';
-
-// 滚动 Ticker 配置
-export interface TickerConfig {
-  enabled: boolean;
-  source: TickerSource;
-  // Mastodon
-  mastodonInstance?: string;
-  mastodonUsername?: string;
-  mastodonLimit?: number;
-  mastodonExcludeReplies?: boolean;
-  mastodonExcludeReblogs?: boolean;
-  // Memos
-  memosHost?: string;
-  memosToken?: string;
-  memosLimit?: number;
-  memosCreator?: string;
-  memosVisibility?: 'PUBLIC' | 'PROTECTED' | 'PRIVATE';
-  // Custom
-  customItems?: string[];
-}
-
 // 天气 API 类型
 export type WeatherProvider = 'jinrishici' | 'qweather' | 'openweather' | 'visualcrossing' | 'accuweather';
 
@@ -182,9 +162,6 @@ export interface AppConfig {
   // 搜索配置
   search?: SearchConfig;
 
-  // 滚动 Ticker 配置
-  ticker?: TickerConfig;
-
   // 天气配置
   weather?: WeatherConfig;
 
@@ -217,8 +194,6 @@ export const DEFAULT_CATEGORIES: Category[] = [
 ];
 
 export const INITIAL_LINKS: LinkItem[] = [
-  { id: 'init1', title: '博客 Blog', url: 'https://dh.kusheji.com', icon: '/favicons/eallion.png', description: '个人生活博客', categoryId: 'common', createdAt: Date.now(), pinned: true, pinnedOrder: 0 },
-  { id: 'init2', title: 'Mastodon e5n.cc', url: 'https://e5n.cc', icon: '/favicons/mastodon.svg', description: 'Charles Chin\'s personal Mastodon.', categoryId: 'common', createdAt: Date.now(), pinned: true, pinnedOrder: 1 },
   { id: 'init3', title: 'Twitter 𝕏', url: 'https://x.com', icon: '/favicons/x.svg', description: 'Blaze your glory!', categoryId: 'common', createdAt: Date.now() },
   { id: 'init4', title: 'GitHub', url: 'https://github.com', icon: '/favicons/github.svg', description: 'Build and ship software on a single, collaborative platform', categoryId: 'common', createdAt: Date.now() },
   { id: 'init5', title: 'Cloudflare', url: 'https://dash.cloudflare.com/', icon: '/favicons/cloudflare.svg', description: 'Connect, protect, and build everywhere', categoryId: 'common', createdAt: Date.now() },

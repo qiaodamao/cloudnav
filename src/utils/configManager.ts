@@ -1,4 +1,4 @@
-import { AppConfig, WebDavConfig, SearchConfig, IconConfig, AIConfig, WebsiteConfig, TickerConfig, WeatherConfig } from '../types';
+import { AppConfig, WebDavConfig, SearchConfig, IconConfig, AIConfig, WebsiteConfig, WeatherConfig } from '../types';
 import { STORAGE_KEYS } from '../constants';
 
 // 默认配置
@@ -137,21 +137,6 @@ class ConfigManager {
   }
 
   /**
-   * 更新 Mastodon 配置
-   */
-  updateMastodonConfig(tickerConfig: TickerConfig): void {
-    this.config.ticker = tickerConfig;
-    this.saveToLocalStorage();
-  }
-
-  /**
-   * 获取 Ticker 配置
-   */
-  getMastodonConfig(): TickerConfig | undefined {
-    return this.config.ticker;
-  }
-
-  /**
    * 更新天气配置
    */
   updateWeatherConfig(weatherConfig: WeatherConfig): void {
@@ -237,7 +222,6 @@ class ConfigManager {
       if (this.config.website) sections.website = this.config.website;
       if (this.config.search) sections.search = this.config.search;
       if (this.config.icon) sections.icon = this.config.icon;
-      if (this.config.ticker) sections.mastodon = this.config.ticker;
       if (this.config.weather) sections.weather = this.config.weather;
       if (this.config.view) sections.view = this.config.view;
       if (this.config.ui) sections.ui = this.config.ui;
@@ -307,8 +291,6 @@ export const updateSearchConfig = (config: SearchConfig) => configManager.update
 export const getSearchConfig = () => configManager.getSearchConfig();
 export const updateIconConfig = (config: IconConfig) => configManager.updateIconConfig(config);
 export const getIconConfig = () => configManager.getIconConfig();
-export const updateMastodonConfig = (config: TickerConfig) => configManager.updateMastodonConfig(config);
-export const getMastodonConfig = () => configManager.getMastodonConfig();
 export const updateWeatherConfig = (config: WeatherConfig) => configManager.updateWeatherConfig(config);
 export const getWeatherConfig = () => configManager.getWeatherConfig();
 export const updateViewMode = (mode: 'compact' | 'detailed', isDefault?: boolean) => configManager.updateViewMode(mode, isDefault);
