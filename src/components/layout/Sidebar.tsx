@@ -118,7 +118,7 @@ export function Sidebar({ isOpen, onClose, activeCategoryId, onOpenCatManager, o
             </span>
           </div>
           {isCollapsed && isHovered && (
-            <button onClick={() => handleToggleCollapse(false)} className="hidden lg:flex absolute inset-0 m-auto w-fit h-fit p-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 shadow-sm transition-colors" title="展开侧边栏">
+            <button onClick={() => handleToggleCollapse(false)} className="hidden lg:flex absolute inset-0 w-full h-full items-center justify-center bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 transition-colors" title="展开侧边栏">
               <PanelLeftOpen size={20} />
             </button>
           )}

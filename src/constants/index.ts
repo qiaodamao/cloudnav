@@ -36,11 +36,6 @@ export const DEFAULT_ICON_CONFIG = {
   },
 } as const
 
-export const SEARCH_ENGINES = [
-  { id: 'google', name: 'Google', url: 'https://www.google.com/search?q=' },
-  { id: 'duckduckgo', name: 'DuckDuckGo', url: 'https://duckduckgo.com/?q=' },
-  { id: 'bing', name: 'Bing', url: 'https://www.bing.com/search?q=' },
-  { id: 'yandex', name: 'Yandex', url: 'https://yandex.com/search/?text=' },
-  { id: 'baidu', name: 'Baidu', url: 'https://www.baidu.com/s?wd=' },
-  { id: 'so', name: '360 搜索', url: 'https://www.so.com/s?q=' },
-] as const;
+// 搜索引擎配置已移至 searchEngines.tsx，便于添加新引擎（含 Logo 组件）
+export { SEARCH_ENGINES, getSearchEngine, getSearchEngineLogo } from './searchEngines';
+export type { SearchEngineConfig } from './searchEngines';

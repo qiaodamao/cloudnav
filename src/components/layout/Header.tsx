@@ -5,32 +5,12 @@ import { useAuthContext } from '../../contexts/AuthContext';
 import { useLinksContext } from '../../contexts/LinksContext';
 import WeatherDisplay from '../../../components/WeatherDisplay';
 import { useState, useRef, useEffect } from 'react';
-import { SEARCH_ENGINES } from '../../constants';
-
-import { 
-  GoogleLogo, 
-  BingLogo, 
-  BaiduLogo, 
-  DuckDuckGoLogo, 
-  YandexLogo, 
-  QihooLogo 
-} from '../icons/SearchLogos';
-
-// Search Engine Icons Mapping
-const ENGINE_LOGOS: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
-  google: GoogleLogo,
-  bing: BingLogo,
-  baidu: BaiduLogo,
-  duckduckgo: DuckDuckGoLogo,
-  yandex: YandexLogo,
-  so: QihooLogo,
-};
+import { SEARCH_ENGINES, getSearchEngineLogo } from '../../constants';
 
 interface HeaderProps {
   searchQuery: string;
   onSearchChange: (q: string) => void;
   isInternal: boolean;
-  onInternalChange: (val: boolean) => void;
   onSearch: (q: string) => void;
   onAddLink: () => void;
   onOpenSettings: () => void;
@@ -52,76 +32,81 @@ interface HeaderProps {
 }
 
 // Search Engine Options Component
-function SearchEngineOptions({ 
-  onSelect, 
+function SearchEngineOptions({
+  onSelect,
   onClose,
   currentEngine,
   customEngineIcon,
-  isInternal
-}: { 
-  onSelect: (id: string) => void; 
+}: {
+  onSelect: (id: string) => void;
   onClose: () => void;
   currentEngine: string;
   customEngineIcon?: string;
-  isInternal: boolean;
 }) {
   const { search } = useConfigContext();
   const hasCustom = !!search?.customEngineUrl;
 
+  // 第一项固定为"站内搜索"，后面是各搜索引擎
   const allEngines = [
+    { id: '', name: '站内搜索' },
     ...SEARCH_ENGINES,
     ...(hasCustom ? [{ id: 'custom', name: '自定义' }] : [])
   ];
 
   return (
-    <div 
+    <div
       className="absolute top-full left-0 mt-1 py-2 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 w-32 z-50 animate-in fade-in slide-in-from-top-2 duration-200"
       onMouseLeave={onClose}
     >
-      {allEngines.map((eng) => (
-        <button
-          key={eng.id}
-          onClick={() => {
-            onSelect(eng.id);
-            onClose();
-          }}
-          className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${
-            currentEngine === eng.id ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-slate-600 dark:text-slate-300'
-          }`}
-        >
-          <RenderEngineLogo 
-            engine={eng.id} 
-            customIcon={customEngineIcon} 
-            isInternal={isInternal} 
-            className="w-3.5 h-3.5"
-          />
-          <span>{eng.name}</span>
-        </button>
-      ))}
+      {allEngines.map((eng) => {
+        // 站内搜索高亮条件：currentEngine 为空
+        // 搜索引擎高亮条件：currentEngine === eng.id
+        const isActive = eng.id === '' ? !currentEngine : currentEngine === eng.id;
+        return (
+          <button
+            key={eng.id || 'internal'}
+            onClick={() => {
+              onSelect(eng.id);
+              onClose();
+            }}
+            className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${
+              isActive ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-slate-600 dark:text-slate-300'
+            }`}
+          >
+            <RenderEngineLogo
+              engine={eng.id || 'internal'}
+              customIcon={customEngineIcon}
+              className="w-3.5 h-3.5"
+            />
+            <span>{eng.name}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
 
 // Helper to render search engine logo
-function RenderEngineLogo({ 
-  engine, 
-  customIcon, 
-  isInternal, 
-  className = "" 
-}: { 
-  engine: string; 
-  customIcon?: string; 
-  isInternal: boolean;
+function RenderEngineLogo({
+  engine,
+  customIcon,
+  className = ""
+}: {
+  engine: string;
+  customIcon?: string;
   className?: string;
 }) {
-  const LogoComponent = ENGINE_LOGOS[engine];
-  const filterClass = isInternal ? 'grayscale opacity-50' : 'grayscale-0 opacity-100';
-  const combinedClass = `${className} transition-all ${filterClass}`;
+  // 站内搜索显示 Search 图标
+  if (engine === 'internal' || engine === '') {
+    return <Search className={`${className} text-slate-500`} style={{ width: '16px', height: '16px' }} />;
+  }
 
+  // 自定义搜索引擎
   if (engine === 'custom' && customIcon) {
+    const combinedClass = `${className} transition-all grayscale-0 opacity-100`;
     if (customIcon.trim().startsWith('<svg')) {
       return (
-        <div 
+        <div
           className={combinedClass}
           dangerouslySetInnerHTML={{ __html: customIcon }}
           style={{ width: '16px', height: '16px' }}
@@ -129,24 +114,27 @@ function RenderEngineLogo({
       );
     }
     return (
-      <img 
-        src={customIcon} 
-        alt="custom" 
-        className={combinedClass} 
+      <img
+        src={customIcon}
+        alt="custom"
+        className={combinedClass}
         style={{ width: '16px', height: '16px', objectFit: 'contain' }}
       />
     );
   }
 
+  // 从配置动态读取 Logo 组件
+  const LogoComponent = getSearchEngineLogo(engine);
   if (LogoComponent) {
+    const combinedClass = `${className} transition-all grayscale-0 opacity-100`;
     return <LogoComponent className={combinedClass} style={{ width: '16px', height: '16px' }} />;
   }
 
-  return <span className={`text-xs ${isInternal ? 'grayscale opacity-50' : ''}`}>🌐</span>;
+  return <span className="text-xs">🌐</span>;
 }
 
 export function Header({
-  searchQuery, onSearchChange, isInternal, onInternalChange, onSearch, onAddLink, onOpenSettings,
+  searchQuery, onSearchChange, isInternal, onSearch, onAddLink, onOpenSettings,
   onOpenCatManager, onOpenBackup,
   onOpenImport, onOpenAuth, onToggleSidebar, isBatchEditMode, onToggleBatchEditMode,
   isMobileSearchOpen, onToggleMobileSearch,
@@ -162,6 +150,7 @@ export function Header({
   const dropdownTimer = useRef<NodeJS.Timeout | null>(null);
 
   const engine = visitorEngineId || search?.defaultEngine || 'google';
+  const engineName = SEARCH_ENGINES.find(e => e.id === engine)?.name || '搜索引擎';
 
   const handleMouseEnter = () => {
     if (dropdownTimer.current) clearTimeout(dropdownTimer.current);
@@ -191,29 +180,26 @@ export function Header({
         {isMobileSearchOpen && (
           <div className="flex-1 flex items-center gap-2 md:hidden ml-2">
             <div className="relative flex-1">
-              <div 
+              <div
                 className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center h-full"
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
               >
                 <button
-                  onClick={() => onInternalChange(!isInternal)}
                   className="shrink-0 w-5 h-5 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
-                  title={isInternal ? "切换到互联网搜索" : "切换到站内搜索"}
+                  title="选择搜索引擎"
                 >
-                  <RenderEngineLogo 
-                    engine={engine} 
-                    customIcon={search?.customEngineIcon} 
-                    isInternal={isInternal} 
+                  <RenderEngineLogo
+                    engine={visitorEngineId || ''}
+                    customIcon={search?.customEngineIcon}
                   />
                 </button>
                 {showDropdown && onVisitorEngineChange && (
-                  <SearchEngineOptions 
-                    onSelect={onVisitorEngineChange} 
+                  <SearchEngineOptions
+                    onSelect={onVisitorEngineChange}
                     onClose={() => setShowDropdown(false)}
-                    currentEngine={engine}
+                    currentEngine={visitorEngineId || ''}
                     customEngineIcon={search?.customEngineIcon}
-                    isInternal={isInternal}
                   />
                 )}
               </div>
@@ -224,26 +210,13 @@ export function Header({
                 autoFocus
                 onChange={(e) => onSearchChange(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && onSearch(searchQuery)}
-                placeholder={isInternal ? "搜索站内链接，点击图标（彩色时）搜索互联网" : "搜索互联网，点击图标（灰色时）站内搜索"}
+                placeholder={isInternal ? "搜索站内链接" : `使用 ${engineName} 搜索互联网`}
                 className="w-full pl-9 pr-4 py-2 h-[36px] rounded-full bg-slate-200 dark:bg-slate-700 border-none text-xs focus:ring-2 focus:ring-blue-500 dark:text-white placeholder-slate-400 outline-none transition-all leading-none"
                 style={{ fontSize: '16px' }}
                 inputMode="search"
                 enterKeyHint="search"
               />
             </div>
-            <label className="flex items-center gap-1 cursor-pointer select-none shrink-0">
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={isInternal}
-                  onChange={(e) => onInternalChange(e.target.checked)}
-                  className="peer sr-only"
-                />
-                <div className="w-7 h-3.5 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:bg-blue-500 transition-colors"></div>
-                <div className="absolute left-0.5 top-0.5 w-2.5 h-2.5 bg-white rounded-full transition-transform peer-checked:translate-x-3.5"></div>
-              </div>
-              <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">站内</span>
-            </label>
             <button onClick={onToggleMobileSearch} className="p-1 text-slate-500 text-xs whitespace-nowrap">
               取消
             </button>
@@ -263,7 +236,6 @@ export function Header({
                 searchQuery={searchQuery}
                 onSearchChange={onSearchChange}
                 isInternal={isInternal}
-                onInternalChange={onInternalChange}
                 onSearch={onSearch}
                 visitorEngineId={visitorEngineId}
                 onVisitorEngineChange={onVisitorEngineChange}
@@ -426,14 +398,13 @@ export function Header({
 }
 
 // Sub-component for the expandable desktop search
-function HeaderSearch({ 
-  searchQuery, onSearchChange, isInternal, onInternalChange, onSearch,
+function HeaderSearch({
+  searchQuery, onSearchChange, isInternal, onSearch,
   visitorEngineId, onVisitorEngineChange
-}: { 
-  searchQuery: string; 
-  onSearchChange: (q: string) => void; 
-  isInternal: boolean; 
-  onInternalChange: (val: boolean) => void;
+}: {
+  searchQuery: string;
+  onSearchChange: (q: string) => void;
+  isInternal: boolean;
   onSearch: (q: string) => void;
   visitorEngineId?: string;
   onVisitorEngineChange?: (id: string) => void;
@@ -451,6 +422,7 @@ function HeaderSearch({
   };
 
   const engine = visitorEngineId || search?.defaultEngine || 'google';
+  const engineName = SEARCH_ENGINES.find(e => e.id === engine)?.name || '搜索引擎';
 
   const handleMouseEnter = () => {
     if (dropdownTimer.current) clearTimeout(dropdownTimer.current);
@@ -464,29 +436,26 @@ function HeaderSearch({
   return (
     <div className="flex items-center justify-end w-full h-full">
       <div className="flex items-center rounded-full h-9 w-full bg-slate-200 dark:bg-slate-700 px-3 shadow-sm border border-slate-200 dark:border-slate-600">
-        <div 
+        <div
           className="relative flex items-center h-full mr-2 shrink-0"
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
           <button
-            onClick={() => onInternalChange(!isInternal)}
             className="shrink-0 w-5 h-5 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
-            title={isInternal ? "切换到互联网搜索" : "切换到站内搜索"}
+            title="选择搜索引擎"
           >
-            <RenderEngineLogo 
-              engine={engine} 
-              customIcon={search?.customEngineIcon} 
-              isInternal={isInternal} 
+            <RenderEngineLogo
+              engine={visitorEngineId || ''}
+              customIcon={search?.customEngineIcon}
             />
           </button>
           {showDropdown && onVisitorEngineChange && (
-            <SearchEngineOptions 
-              onSelect={onVisitorEngineChange} 
+            <SearchEngineOptions
+              onSelect={onVisitorEngineChange}
               onClose={() => setShowDropdown(false)}
-              currentEngine={engine}
+              currentEngine={visitorEngineId || ''}
               customEngineIcon={search?.customEngineIcon}
-              isInternal={isInternal}
             />
           )}
         </div>
@@ -501,12 +470,12 @@ function HeaderSearch({
             if (e.key === 'Enter') onSearch(searchQuery);
             if (e.key === 'Escape') handleClear();
           }}
-          placeholder={isInternal ? "搜索站内链接，点击图标（彩色时）搜索互联网" : "搜索互联网，点击图标（灰色时）站内搜索"}
+          placeholder={isInternal ? "搜索站内链接" : `使用 ${engineName} 搜索互联网`}
           className="bg-transparent border-none text-xs focus:ring-0 dark:text-white placeholder-slate-400 outline-none h-full flex-1 min-w-0"
         />
 
         {searchQuery ? (
-          <button 
+          <button
             onClick={handleClear}
             className="p-1 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-full transition-colors text-slate-500 shrink-0"
           >

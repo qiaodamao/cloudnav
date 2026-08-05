@@ -13,11 +13,9 @@ export function useSearch() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(true);
-  
-  // 站内搜索勾选状态，默认为 true (站内优先)
-  const [isInternal, setIsInternal] = useState(true);
 
-  // 访客自定义的搜索引擎 ID (持久化在本地)
+  // 访客选择的搜索引擎 ID (空字符串 = 站内搜索)
+  // 持久化在本地，刷新后保留选择
   const [visitorEngineId, setVisitorEngineId] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('visitor_search_engine') || '';
@@ -30,12 +28,15 @@ export function useSearch() {
     localStorage.setItem('visitor_search_engine', id);
   }, []);
 
+  // isInternal 由 visitorEngineId 派生：空字符串为站内搜索，其他为外部搜索
+  const isInternal = !visitorEngineId;
+
   const defaultEngineId = searchConfig?.defaultEngine || 'google';
   const currentEngineId = visitorEngineId || defaultEngineId;
 
   const searchMode = searchConfig?.mode || 'internal';
-  const externalSources = searchConfig?.externalSources?.length > 0 
-    ? searchConfig.externalSources 
+  const externalSources = searchConfig?.externalSources?.length > 0
+    ? searchConfig.externalSources
     : DEFAULT_SEARCH_SOURCES;
   const selectedSource = searchConfig?.selectedSource || null;
   const customEngineUrl = searchConfig?.customEngineUrl || '';
@@ -56,7 +57,7 @@ export function useSearch() {
   const searchResults = useMemo(() => {
     if (!searchQuery.trim() || !isInternal) return [];
     const q = searchQuery.toLowerCase();
-    
+
     // 创建分类权重映射
     const categoryWeightMap = new Map(categories.map(c => [c.id, c.weight || 0]));
 
@@ -69,7 +70,7 @@ export function useSearch() {
       .sort((a, b) => {
         // 1. 置顶链接排在最前面
         if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-        
+
         // 2. 如果都是置顶，按置顶顺序排序
         if (a.pinned && b.pinned) {
           return (a.pinnedOrder || 0) - (b.pinnedOrder || 0);
@@ -88,7 +89,7 @@ export function useSearch() {
   // Execute search
   const handleSearch = useCallback((query: string) => {
     if (!query.trim()) return;
-    
+
     if (!isInternal) {
       // 外部搜索
       let searchUrl = '';
@@ -112,8 +113,8 @@ export function useSearch() {
     handleSearch,
     isMobileSearchOpen, setIsMobileSearchOpen,
     isSearchExpanded, setIsSearchExpanded,
-    isInternal, setIsInternal,
-    visitorEngineId: currentEngineId,
+    isInternal,
+    visitorEngineId,
     setVisitorEngineId: updateVisitorEngine,
   };
 }

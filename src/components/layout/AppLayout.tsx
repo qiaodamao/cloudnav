@@ -30,9 +30,9 @@ export function AppLayout() {
   const { ai: aiConfig, icon: iconConfig, viewMode, showPinnedWebsites, weather, website, webdav, search, setAI, setIcon, setWebsite, setShowPinned, setWeather, setWebDav, setSearch, setViewMode } = useConfigContext();
 
   // Hooks
-  const { 
-    searchQuery, setSearchQuery, searchResults, isMobileSearchOpen, setIsMobileSearchOpen, 
-    isInternal, setIsInternal, handleSearch, visitorEngineId, setVisitorEngineId 
+  const {
+    searchQuery, setSearchQuery, searchResults, isMobileSearchOpen, setIsMobileSearchOpen,
+    isInternal, handleSearch, visitorEngineId, setVisitorEngineId
   } = useSearch();
   const { initData } = useDataSync();
 
@@ -452,7 +452,6 @@ export function AppLayout() {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           isInternal={isInternal}
-          onInternalChange={setIsInternal}
           onSearch={handleSearch}
           onAddLink={handleAddLink}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
