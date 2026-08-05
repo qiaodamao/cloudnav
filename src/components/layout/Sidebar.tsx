@@ -58,7 +58,7 @@ export function Sidebar({ isOpen, onClose, activeCategoryId, onOpenCatManager, o
       <div key={cat.id}>
         <button
           onClick={() => handleCategoryClick(cat)}
-          className={`w-full flex items-center cursor-pointer py-2.5 rounded-xl transition-all group ${
+          className={`w-full flex items-center cursor-pointer py-2.5 rounded-xl transition-colors group ${
             isActive
               ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
@@ -107,7 +107,7 @@ export function Sidebar({ isOpen, onClose, activeCategoryId, onOpenCatManager, o
         isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       }`}>
         {/* Logo */}
-        <div className={`h-16 flex items-center relative shrink-0 transition-all duration-300 ${isCollapsed ? 'justify-center' : 'justify-start pl-8'}`}>
+        <div className={`h-16 flex items-center relative shrink-0 ${isCollapsed ? 'justify-center' : 'justify-start pl-8'}`}>
           <div
             className="flex items-center gap-2 h-full cursor-pointer"
             onClick={() => window.location.reload()}
@@ -146,7 +146,7 @@ export function Sidebar({ isOpen, onClose, activeCategoryId, onOpenCatManager, o
                 document.getElementById('cat-pinned')?.scrollIntoView({ behavior: 'smooth' });
                 onClose();
               }}
-              className={`w-full flex items-center py-3 rounded-xl transition-all cursor-pointer ${
+              className={`w-full flex items-center py-3 rounded-xl transition-colors cursor-pointer ${
                 activeCategoryId === 'pinned'
                   ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
@@ -159,7 +159,7 @@ export function Sidebar({ isOpen, onClose, activeCategoryId, onOpenCatManager, o
           )}
 
           {/* 分类目录标题 */}
-          <div className={`flex items-center justify-between px-4 transition-all duration-300 overflow-hidden ${isCollapsed ? 'h-0 opacity-0 mt-0 mb-0' : 'h-10 mt-4 mb-2 opacity-100'}`}>
+          <div className={`flex items-center justify-between px-4 overflow-hidden ${isCollapsed ? 'h-0 opacity-0 mt-0 mb-0' : 'h-10 mt-4 mb-2 opacity-100'}`}>
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">分类目录</span>
             {authToken && (
               <button
@@ -171,7 +171,7 @@ export function Sidebar({ isOpen, onClose, activeCategoryId, onOpenCatManager, o
               </button>
             )}
           </div>
-          <div className={`mx-2 border-b border-slate-100 dark:border-slate-700/50 transition-all duration-300 ${isCollapsed ? 'mb-4 mt-2' : 'mb-0 mt-0 h-0 border-transparent opacity-0'}`}></div>
+          <div className={`mx-2 border-b border-slate-100 dark:border-slate-700/50 ${isCollapsed ? 'mb-4 mt-2' : 'mb-0 mt-0 h-0 border-transparent opacity-0'}`}></div>
 
           {/* 分类树 */}
           {categoryTree.map(cat => renderCategoryNode(cat, 0))}
