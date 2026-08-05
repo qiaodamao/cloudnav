@@ -1,7 +1,14 @@
 @import "tailwindcss";
 @import "./hover-card.css";
 
-/* 自定义断点（Tailwind v4 在 CSS 中通过 @theme 定义，tailwind.config.js 不再生效） */
+/* 源文件扫描（Tailwind v4 官方推荐：CSS-first，无需 tailwind.config.js） */
+/* src/ 目录会被自动扫描，这里显式指定根目录的文件 */
+@source "../index.html";
+@source "../*.{ts,tsx}";
+@source "../components/**/*.{js,ts,jsx,tsx}";
+@source "../services/**/*.{js,ts,jsx,tsx}";
+
+/* 自定义断点（Tailwind v4 通过 @theme 定义，自动生成 wide:/ultrawide: 变体） */
 @theme {
   --breakpoint-wide: 1800px;
   --breakpoint-ultrawide: 2560px;
