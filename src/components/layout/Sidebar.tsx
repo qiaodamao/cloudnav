@@ -90,13 +90,16 @@ export function Sidebar({ isOpen, onClose, activeCategoryId, onOpenCatManager, o
       }`}>
         {/* Logo */}
         <div className="h-16 flex items-center justify-center relative border-b border-slate-100 dark:border-slate-700 shrink-0 transition-all duration-300">
-          <span 
-            className={`text-xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent flex items-center h-full whitespace-nowrap overflow-hidden transition-all ease-in-out ${
-              isCollapsed ? 'max-w-0 opacity-0 duration-150' : 'max-w-[200px] opacity-100 duration-300 delay-150'
-            }`}
-          >
-            {ai?.sidebarNavigationName || ai?.navigationName || '导航'}
-          </span>
+          <div className="flex items-center gap-2 h-full">
+            <img src="/logo.svg" alt="Logo" className="w-8 h-8 shrink-0 dark:invert" />
+            <span
+              className={`text-xl font-bold text-slate-900 dark:text-white flex items-center h-full whitespace-nowrap overflow-hidden transition-all ease-in-out ${
+                isCollapsed ? 'max-w-0 opacity-0 duration-150' : 'max-w-[180px] opacity-100 duration-300 delay-150'
+              }`}
+            >
+              {ai?.sidebarNavigationName || ai?.navigationName || '导航'}
+            </span>
+          </div>
           {isCollapsed && (
             <button onClick={() => setIsCollapsed(false)} className="hidden lg:flex absolute p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors" title="展开侧边栏">
               <PanelLeftOpen size={20} />
