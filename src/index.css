@@ -4,7 +4,7 @@
 /* 自定义断点（Tailwind v4 在 CSS 中通过 @theme 定义，tailwind.config.js 不再生效） */
 @theme {
   --breakpoint-wide: 1800px;
-  --breakpoint-3xl: 2560px;
+  --breakpoint-ultrawide: 2560px;
 }
 
 /* 强制设置浅色模式为默认 */

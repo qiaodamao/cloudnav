@@ -12,7 +12,7 @@ module.exports = {
     extend: {
       screens: {
         'wide': '1800px',
-        '3xl': '2560px',
+        'ultrawide': '2560px',
       },
       colors: {
         primary: '#3b82f6',
