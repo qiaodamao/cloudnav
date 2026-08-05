@@ -12,6 +12,7 @@ import { ContentSkeleton } from './ContentSkeleton';
 import { LinkItem, Category } from '../../../types';
 import AuthModal from '../../../components/AuthModal';
 import AccessModal from '../../../components/AccessModal';
+import { BackToTop } from '../../components/BackToTop';
 
 const LinkModal = lazy(() => import('../../../components/LinkModal'));
 const CategoryManagerModal = lazy(() => import('../../../components/CategoryManagerModal'));
@@ -635,6 +636,9 @@ export function AppLayout() {
           />
         )}
       </Suspense>
+
+      {/* 返回顶部按钮 */}
+      <BackToTop />
     </div>
   );
 }

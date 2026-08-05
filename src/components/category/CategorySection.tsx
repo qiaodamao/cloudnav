@@ -44,7 +44,7 @@ export function CategorySection({
 
   return (
     <section id={`cat-${category.id}`} data-category-section className="mb-8 scroll-mt-20">
-      <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2 mb-4">
+      <h2 className="text-[20px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2 mb-4">
         <span>{category.name}</span>
         <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 rounded-full">
           {allLinks.length}
@@ -85,7 +85,7 @@ export function CategorySection({
 
         return (
           <div key={child.id} id={`cat-${child.id}`} className="mt-6 scroll-mt-20">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-2 mb-3">
+            <h3 className="text-[18px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-2 mb-3">
               <span>{child.name}</span>
               <span className="px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-full">
                 {childLinks.length}

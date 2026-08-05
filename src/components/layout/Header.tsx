@@ -229,7 +229,7 @@ export function Header({
         {/* Right: Actions */}
         <div className="flex items-center gap-2">
           {/* Search Container */}
-          <div className="hidden md:flex items-center gap-2 w-[360px] lg:w-[480px] xl:w-[640px] shrink-0">
+          <div className="hidden md:flex items-center gap-2 w-[180px] lg:w-[240px] xl:w-[320px] shrink-0">
             {/* Search */}
             <div className="min-w-0 flex-1">
               <HeaderSearch
