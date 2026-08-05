@@ -132,7 +132,7 @@ export function LinkCard({
       ref={mergedRef}
       style={style}
       data-color-ready={!!color || undefined}
-      className={`link-card group relative transition-all duration-200 ${
+      className={`link-card group relative transition-[transform,box-shadow] duration-200 ${
         isSelected
           ? 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800'
           : 'bg-white dark:bg-slate-800 border-[#f3f4f6] dark:border-slate-700'

@@ -120,6 +120,11 @@ html.dark body {
   opacity: 0;
 }
 
+/* 浅色模式下书签卡片描边色覆盖：抵消上方 [class*="dark:"] 的 !important 覆盖 */
+html:not(.dark) .link-card:not(.border-red-200) {
+  border-color: #f3f4f6 !important;
+}
+
 .link-card:nth-child(1) { animation-delay: 0ms; }
 .link-card:nth-child(2) { animation-delay: 30ms; }
 .link-card:nth-child(3) { animation-delay: 60ms; }
