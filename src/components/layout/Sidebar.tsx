@@ -95,14 +95,14 @@ export function Sidebar({ isOpen, onClose, activeCategoryId, onOpenCatManager, o
     <>
       {/* Overlay */}
       {isOpen && (
-        <div className="fixed inset-0 z-20 bg-black/50 lg:hidden backdrop-blur-sm cursor-pointer" onClick={onClose} />
+        <div className="fixed inset-0 z-40 bg-black/50 lg:hidden backdrop-blur-sm cursor-pointer" onClick={onClose} />
       )}
 
       {/* Sidebar */}
       <aside
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className={`fixed lg:static inset-y-0 left-0 z-30 ${isCollapsed ? 'w-16' : 'w-64 lg:w-48 xl:w-64'} transform transition-all duration-300 ease-in-out bg-white dark:bg-slate-800 flex flex-col overflow-x-hidden ${
+        className={`fixed lg:static inset-y-0 left-0 z-50 ${isCollapsed ? 'w-16' : 'w-64 lg:w-48 xl:w-64'} transform transition-all duration-300 ease-in-out bg-white dark:bg-slate-800 flex flex-col overflow-x-hidden ${
         isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       }`}>
         {/* Logo */}

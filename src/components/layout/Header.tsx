@@ -245,7 +245,7 @@ export function Header({
 
           {/* Mobile search toggle */}
           {!isMobileSearchOpen && (
-            <button onClick={onToggleMobileSearch} className="md:hidden p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700">
+            <button onClick={onToggleMobileSearch} className="md:hidden p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
               <Search size={18} />
             </button>
           )}
