@@ -211,7 +211,7 @@ export function Header({
                 onChange={(e) => onSearchChange(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && onSearch(searchQuery)}
                 placeholder={isInternal ? "搜索站内链接" : `使用 ${engineName} 搜索互联网`}
-                className="w-full pl-9 pr-4 py-2 h-[36px] rounded-full bg-transparent border border-slate-200 dark:border-slate-600 text-xs focus:ring-2 focus:ring-blue-500 dark:text-white placeholder-slate-400 outline-none transition-all leading-none"
+                className="w-full pl-9 pr-4 py-2 h-[36px] rounded-full bg-transparent border border-[#f3f4f6] dark:border-slate-600 text-xs focus:ring-2 focus:ring-blue-500 dark:text-white placeholder-slate-400 outline-none transition-all leading-none"
                 style={{ fontSize: '16px' }}
                 inputMode="search"
                 enterKeyHint="search"
@@ -435,7 +435,7 @@ function HeaderSearch({
 
   return (
     <div className="flex items-center justify-end w-full h-full">
-      <div className="flex items-center rounded-full h-9 w-full px-3 border border-slate-200 dark:border-slate-600">
+      <div className="flex items-center rounded-full h-9 w-full px-3 border border-[#f3f4f6] dark:border-slate-600">
         <div
           className="relative flex items-center h-full mr-2 shrink-0"
           onMouseEnter={handleMouseEnter}

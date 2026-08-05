@@ -107,7 +107,11 @@ export function Sidebar({ isOpen, onClose, activeCategoryId, onOpenCatManager, o
       }`}>
         {/* Logo */}
         <div className={`h-16 flex items-center relative shrink-0 transition-all duration-300 ${isCollapsed ? 'justify-center' : 'justify-start pl-8'}`}>
-          <div className="flex items-center gap-2 h-full">
+          <div
+            className="flex items-center gap-2 h-full cursor-pointer"
+            onClick={() => window.location.reload()}
+            title="回到首页"
+          >
             <img src="/logo.svg" alt="Logo" className="w-8 h-8 shrink-0 dark:invert" />
             <span
               className={`text-xl font-bold text-slate-900 dark:text-white flex items-center h-full whitespace-nowrap overflow-hidden transition-all ease-in-out ${

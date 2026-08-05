@@ -138,8 +138,8 @@ export function LinkCard({
           : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
       } ${isBatchEditMode ? 'cursor-pointer' : isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} ${
         isDetailedView
-          ? 'flex flex-col rounded-2xl border shadow-sm p-4 min-h-[100px] items-start justify-start text-left w-full min-w-0'
-          : 'flex items-center justify-between rounded-xl border shadow-sm p-3'
+          ? 'flex flex-col rounded-2xl border p-4 min-h-[100px] items-start justify-start text-left w-full min-w-0'
+          : 'flex items-center justify-between rounded-xl border p-3'
       } ${isDragging ? 'shadow-2xl scale-105' : ''}`}
       onClick={handleClick}
       onContextMenu={(e) => onContextMenu(e, link)}
