@@ -106,7 +106,7 @@ export function Sidebar({ isOpen, onClose, activeCategoryId, onOpenCatManager, o
         isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       }`}>
         {/* Logo */}
-        <div className="h-16 flex items-center justify-center relative border-b border-slate-100 dark:border-slate-700 shrink-0 transition-all duration-300">
+        <div className="h-16 flex items-center justify-center relative shrink-0 transition-all duration-300">
           <div className="flex items-center gap-2 h-full">
             <img src="/logo.svg" alt="Logo" className="w-8 h-8 shrink-0 dark:invert" />
             <span
