@@ -75,7 +75,7 @@ export function MainContent({
               {searchResults.length}
             </span>
           </h2>
-          <div className={`grid gap-5 ${gridClass}`}>
+          <div className={`grid gap-3 md:gap-5 ${gridClass}`}>
             {searchResults.map(link => (
               <LinkCard
                 key={link.id}

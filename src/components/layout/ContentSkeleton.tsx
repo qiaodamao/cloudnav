@@ -18,7 +18,7 @@ export function ContentSkeleton({ viewMode = 'detailed' }: ContentSkeletonProps)
           <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-24" />
           <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded-full w-8" />
         </div>
-        <div className={`grid gap-5 ${gridClass}`}>
+        <div className={`grid gap-3 md:gap-5 ${gridClass}`}>
           <CardSkeleton viewMode={viewMode} count={6} />
         </div>
       </section>
@@ -28,7 +28,7 @@ export function ContentSkeleton({ viewMode = 'detailed' }: ContentSkeletonProps)
             <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded" style={{ width: `${60 + i * 20}px` }} />
             <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded-full w-8" />
           </div>
-          <div className={`grid gap-5 ${gridClass}`}>
+          <div className={`grid gap-3 md:gap-5 ${gridClass}`}>
             <CardSkeleton viewMode={viewMode} count={4 + i} />
           </div>
         </section>

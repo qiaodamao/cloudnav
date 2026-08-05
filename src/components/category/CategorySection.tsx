@@ -55,7 +55,7 @@ export function CategorySection({
       {links.length > 0 && (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={links.map(l => l.id)} strategy={rectSortingStrategy}>
-            <div className={`grid gap-5 ${gridClass}`}>
+            <div className={`grid gap-3 md:gap-5 ${gridClass}`}>
               {links.map(link => (
                 <LinkCard
                   key={link.id}
@@ -93,7 +93,7 @@ export function CategorySection({
             </h3>
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => onDragEnd(e, child.id)}>
               <SortableContext items={childLinks.map(l => l.id)} strategy={rectSortingStrategy}>
-                <div className={`grid gap-5 ${gridClass}`}>
+                <div className={`grid gap-3 md:gap-5 ${gridClass}`}>
                   {childLinks.map(link => (
                     <LinkCard
                       key={link.id}

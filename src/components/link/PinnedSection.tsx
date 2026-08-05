@@ -46,7 +46,7 @@ export function PinnedSection({
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={sortedLinks.map(l => l.id)} strategy={rectSortingStrategy}>
-          <div className={`grid gap-5 ${gridClass}`}>
+          <div className={`grid gap-3 md:gap-5 ${gridClass}`}>
             {sortedLinks.map(link => (
               <LinkCard
                 key={link.id}

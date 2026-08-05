@@ -135,7 +135,7 @@ export function LinkCard({
       className={`link-card group relative transition-[transform,box-shadow] duration-200 ${
         isSelected
           ? 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800'
-          : 'bg-white dark:bg-slate-800 border-[#e3e8f7] dark:border-slate-700'
+          : 'bg-white dark:bg-slate-800 border-[#f3f4f6] dark:border-slate-700'
       } ${isBatchEditMode ? 'cursor-pointer' : isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} ${
         isDetailedView
           ? 'flex flex-col rounded-2xl border p-4 min-h-[100px] items-start justify-start text-left w-full min-w-0'
