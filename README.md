@@ -32,8 +32,6 @@
 
 - [qiaodamao/bookmark-assistant](https://github.com/qiaodamao/bookmark-assistant)
 
-[![](screenshots/ChromeStore.png)](https://chromewebstore.google.com/detail/nepjakfedadjkpjpideoaobngonilmoi) [![](screenshots/FirefoxAddon.png)](https://addons.mozilla.org/zh-CN/firefox/addon/favorite-assistant/)
-
 ## 🏗️ 技术架构
 
 #### 技术栈

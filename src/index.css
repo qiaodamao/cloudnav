@@ -9,9 +9,10 @@
 @source "../services/**/*.{js,ts,jsx,tsx}";
 
 /* 自定义断点（Tailwind v4 通过 @theme 定义，自动生成 wide:/ultrawide: 变体） */
+/* 必须用 rem 单位（与默认断点一致），否则排序错乱会导致断点互相覆盖 */
 @theme {
-  --breakpoint-wide: 1800px;
-  --breakpoint-ultrawide: 2560px;
+  --breakpoint-wide: 112.5rem;      /* 1800px */
+  --breakpoint-ultrawide: 160rem;   /* 2560px */
 }
 
 /* 强制设置浅色模式为默认 */
