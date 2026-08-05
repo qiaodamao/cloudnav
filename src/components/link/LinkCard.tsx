@@ -135,7 +135,7 @@ export function LinkCard({
       className={`link-card group relative transition-all duration-200 ${
         isSelected
           ? 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800'
-          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+          : 'bg-white dark:bg-slate-800 border-[#f3f4f6] dark:border-slate-700'
       } ${isBatchEditMode ? 'cursor-pointer' : isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} ${
         isDetailedView
           ? 'flex flex-col rounded-2xl border p-4 min-h-[100px] items-start justify-start text-left w-full min-w-0'
@@ -207,7 +207,7 @@ export function LinkCard({
           <>
             <div className="flex flex-col md:flex-row md:items-start gap-3 w-full min-w-0">
               <div className="flex items-center gap-3 w-full md:hidden">
-                <div className="text-blue-600 dark:text-blue-400 flex items-center justify-center text-sm font-bold uppercase shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800 shadow-sm">
+                <div className="text-blue-600 dark:text-blue-400 flex items-center justify-center text-sm font-bold uppercase shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800">
                   {iconSrc ? <img src={iconSrc} alt="" className="w-6 h-6" loading="lazy" onError={() => setImgError(true)} /> : link.title.charAt(0).toUpperCase()}
                 </div>
                 <h3 className="flex-1 min-w-0 text-slate-800 dark:text-slate-200 text-base font-medium overflow-hidden text-ellipsis whitespace-nowrap group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" title={link.title}>
@@ -219,7 +219,7 @@ export function LinkCard({
                   {link.description}
                 </p>
               )}
-              <div className="hidden md:flex text-blue-600 dark:text-blue-400 items-center justify-center text-sm font-bold uppercase shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800 shadow-sm">
+              <div className="hidden md:flex text-blue-600 dark:text-blue-400 items-center justify-center text-sm font-bold uppercase shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800">
                 {iconSrc ? <img src={iconSrc} alt="" className="w-10 h-10" loading="lazy" onError={() => setImgError(true)} /> : link.title.charAt(0).toUpperCase()}
               </div>
               <div className="hidden md:flex flex-1 min-w-0 flex-col justify-start w-full">
