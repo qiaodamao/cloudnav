@@ -27,23 +27,11 @@ export interface Category {
   weight?: number;
 }
 
-export interface AppState {
-  links: LinkItem[];
-  categories: Category[];
-  darkMode: boolean;
-}
-
 export interface WebDavConfig {
   url: string;
   username: string;
   password: string;
   enabled: boolean;
-}
-
-export interface AIProviderConfig {
-  apiKey: string;
-  baseUrl: string;
-  model: string;
 }
 
 // AI 服务提供商
@@ -54,7 +42,7 @@ export interface AIConfig {
   apiKey: string;
   baseUrl: string;
   model: string;
-  providers?: Partial<Record<AIProvider, AIProviderConfig>>;
+  providers?: Partial<Record<AIProvider, { apiKey: string; baseUrl: string; model: string }>>;
   websiteTitle?: string;
   faviconUrl?: string;
   navigationName?: string;
