@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://dh.kusheji.com/sitemap.xml
+Sitemap: https://nav.shijuefuhao.com/sitemap.xml
