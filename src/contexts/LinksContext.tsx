@@ -94,10 +94,13 @@ export function LinksProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // 持久化：本地 + 云端
-  const persist = useCallback((links: LinkItem[], categories: Category[]) => {
+  const persist = useCallback(async (links: LinkItem[], categories: Category[]) => {
     localStorage.setItem(STORAGE_KEYS.LOCAL_STORAGE_KEY, JSON.stringify({ links, categories }));
     if (authToken) {
-      syncToCloud(links, categories, authToken);
+      const ok = await syncToCloud(links, categories, authToken);
+      if (!ok) {
+        console.error('Sync to cloud failed, local data may be ahead of cloud');
+      }
     }
   }, [authToken, syncToCloud]);
 
@@ -127,9 +130,9 @@ export function LinksProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // 设置链接并同步（用于 updateData 场景）
-  const setLinksAndSync = useCallback((links: LinkItem[], categories: Category[]) => {
+  const setLinksAndSync = useCallback(async (links: LinkItem[], categories: Category[]) => {
     dispatch({ type: 'SET_LINKS', payload: links });
-    persist(links, categories);
+    await persist(links, categories);
   }, [persist]);
 
   // 置顶链接

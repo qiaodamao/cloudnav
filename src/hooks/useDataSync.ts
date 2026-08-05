@@ -50,7 +50,10 @@ export function useDataSync() {
   // 从 KV 加载链接和分类
   const loadFromCloud = useCallback(async (): Promise<{ links: LinkItem[]; categories: Category[] } | null> => {
     try {
-      const res = await fetch(`${API_ENDPOINTS.STORAGE}?getConfig=true&readOnly=true`);
+      // cache: 'no-store' 避免浏览器缓存导致读到旧数据
+      const res = await fetch(`${API_ENDPOINTS.STORAGE}?getConfig=true&readOnly=true&_=${Date.now()}`, {
+        cache: 'no-store',
+      });
       if (!res.ok) return null;
       const data = await res.json();
       if (data.links?.length > 0 || data.categories?.length > 0) {

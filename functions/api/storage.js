@@ -70,7 +70,8 @@ async function readAllCategoryLinks(kv) {
 }
 
 // 保存链接到对应的分类 key
-async function saveCategoryLinks(kv, links) {
+// categories 可选：传入后会为每个分类写入（包括空分类），避免残留旧数据
+async function saveCategoryLinks(kv, links, categories) {
   // 按 categoryId 分组
   const grouped = {};
   for (const link of links) {
@@ -79,10 +80,20 @@ async function saveCategoryLinks(kv, links) {
     grouped[catId].push(link);
   }
 
-  // 并行写入每个分类
-  const writes = Object.entries(grouped).map(([catId, catLinks]) =>
-    kv.put(categoryLinksKey(catId), JSON.stringify(catLinks))
-  );
+  // 确定要写入的所有分类 key（包括空分类，覆盖旧数据）
+  const catIds = new Set(Object.keys(grouped));
+  if (categories && Array.isArray(categories)) {
+    for (const cat of categories) {
+      catIds.add(cat.id);
+    }
+  }
+
+  // 并行写入每个分类（空分类写入 [] 以覆盖旧数据）
+  const writes = [];
+  for (const catId of catIds) {
+    const catLinks = grouped[catId] || [];
+    writes.push(kv.put(categoryLinksKey(catId), JSON.stringify(catLinks)));
+  }
 
   await Promise.all(writes);
 }
@@ -265,7 +276,7 @@ export async function onRequest(context) {
 
       // 同时保存链接和分类
       if (body.links && body.categories) {
-        await saveCategoryLinks(kv, body.links);
+        await saveCategoryLinks(kv, body.links, body.categories);
         await kv.put(STORAGE_KEYS.CATEGORIES_CONFIG_KEY, JSON.stringify(body.categories));
         return jsonResponse({ success: true }, 200, corsHeaders);
       } else if (body.links) {
