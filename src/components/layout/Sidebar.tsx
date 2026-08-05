@@ -22,6 +22,7 @@ export function Sidebar({ isOpen, onClose, activeCategoryId, onOpenCatManager, o
   const { authToken } = useAuthContext();
   const { syncStatus } = useLinksContext();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const handleCategoryClick = useCallback((cat: CategoryWithChildren) => {
     if (cat.children && cat.children.length > 0) {
@@ -85,7 +86,10 @@ export function Sidebar({ isOpen, onClose, activeCategoryId, onOpenCatManager, o
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed lg:static inset-y-0 left-0 z-30 ${isCollapsed ? 'w-16' : 'w-64 lg:w-48 xl:w-64'} transform transition-all duration-300 ease-in-out bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col overflow-x-hidden ${
+      <aside
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className={`fixed lg:static inset-y-0 left-0 z-30 ${isCollapsed ? 'w-16' : 'w-64 lg:w-48 xl:w-64'} transform transition-all duration-300 ease-in-out bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col overflow-x-hidden ${
         isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       }`}>
         {/* Logo */}
@@ -100,7 +104,7 @@ export function Sidebar({ isOpen, onClose, activeCategoryId, onOpenCatManager, o
               {ai?.sidebarNavigationName || ai?.navigationName || '导航'}
             </span>
           </div>
-          {isCollapsed && (
+          {isCollapsed && isHovered && (
             <button onClick={() => setIsCollapsed(false)} className="hidden lg:flex absolute p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors" title="展开侧边栏">
               <PanelLeftOpen size={20} />
             </button>
