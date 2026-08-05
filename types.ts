@@ -45,7 +45,6 @@ export interface AIConfig {
   providers?: Partial<Record<AIProvider, { apiKey: string; baseUrl: string; model: string }>>;
   websiteTitle?: string;
   faviconUrl?: string;
-  navigationName?: string;
   sidebarNavigationName?: string;
   defaultViewMode?: 'compact' | 'detailed';
 }

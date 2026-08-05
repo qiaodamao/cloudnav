@@ -114,7 +114,7 @@ export function Sidebar({ isOpen, onClose, activeCategoryId, onOpenCatManager, o
                 isCollapsed ? 'max-w-0 opacity-0 duration-150' : 'max-w-[180px] opacity-100 duration-300 delay-150'
               }`}
             >
-              {ai?.sidebarNavigationName || ai?.navigationName || '导航'}
+              {ai?.sidebarNavigationName || '导航'}
             </span>
           </div>
           {isCollapsed && isHovered && (
