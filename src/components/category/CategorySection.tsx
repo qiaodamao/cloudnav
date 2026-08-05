@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { DndContext, closestCenter, DragEndEvent, SensorDescriptor } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
 import { LinkItem, Category } from '../../../types';
@@ -31,6 +31,24 @@ export function CategorySection({
   authToken, isDraggable = false, isEditMode = false, onWeightChange,
 }: CategorySectionProps) {
   const allLinks = [...links, ...subcategoryLinks];
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // 使用 ResizeObserver 记录元素真实高度，作为下次离屏时的 contain-intrinsic-size 占位值，
+  // 避免固定占位高度与实际高度差异导致 content-visibility 切换时底部内容被遮挡
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const updateIntrinsicSize = () => {
+      const height = el.getBoundingClientRect().height;
+      if (height > 0) {
+        el.style.containIntrinsicSize = `auto ${height}px`;
+      }
+    };
+    updateIntrinsicSize();
+    const observer = new ResizeObserver(updateIntrinsicSize);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [allLinks.length, viewMode]);
 
   if (allLinks.length === 0) return null;
 
@@ -43,7 +61,7 @@ export function CategorySection({
     : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 3xl:grid-cols-10';
 
   return (
-    <section id={`cat-${category.id}`} data-category-section className="mb-8 scroll-mt-20">
+    <section ref={sectionRef} id={`cat-${category.id}`} data-category-section className="mb-8 scroll-mt-20">
       <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2 mb-4">
         <span>{category.name}</span>
         <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 rounded-full">
