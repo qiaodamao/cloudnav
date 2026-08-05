@@ -37,7 +37,7 @@ export function PinnedSection({
     <div>
       <div className="flex items-center gap-2 mb-4">
         <Pin size={16} className="text-blue-500 fill-blue-500" />
-        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <h2 className="text-[20px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           置顶 / 常用
         </h2>
         <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 rounded-full">
