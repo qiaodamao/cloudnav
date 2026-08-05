@@ -61,8 +61,8 @@ export function MainContent({
   }, [links, categories]);
 
   const gridClass = viewMode === 'detailed'
-    ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
-    : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 3xl:grid-cols-10';
+    ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7'
+    : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8';
 
   // Search mode: Only show results if internal search is checked
   if (searchQuery.trim() && isInternal) {
@@ -75,7 +75,7 @@ export function MainContent({
               {searchResults.length}
             </span>
           </h2>
-          <div className={`grid gap-3 ${gridClass}`}>
+          <div className={`grid gap-5 ${gridClass}`}>
             {searchResults.map(link => (
               <LinkCard
                 key={link.id}

@@ -7,8 +7,8 @@ interface ContentSkeletonProps {
 
 export function ContentSkeleton({ viewMode = 'detailed' }: ContentSkeletonProps) {
   const gridClass = viewMode === 'detailed'
-    ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
-    : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6';
+    ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7'
+    : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8';
 
   return (
     <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-8">
@@ -18,7 +18,7 @@ export function ContentSkeleton({ viewMode = 'detailed' }: ContentSkeletonProps)
           <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-24" />
           <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded-full w-8" />
         </div>
-        <div className={`grid gap-3 ${gridClass}`}>
+        <div className={`grid gap-5 ${gridClass}`}>
           <CardSkeleton viewMode={viewMode} count={6} />
         </div>
       </section>
@@ -28,7 +28,7 @@ export function ContentSkeleton({ viewMode = 'detailed' }: ContentSkeletonProps)
             <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded" style={{ width: `${60 + i * 20}px` }} />
             <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded-full w-8" />
           </div>
-          <div className={`grid gap-3 ${gridClass}`}>
+          <div className={`grid gap-5 ${gridClass}`}>
             <CardSkeleton viewMode={viewMode} count={4 + i} />
           </div>
         </section>

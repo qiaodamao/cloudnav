@@ -39,8 +39,8 @@ export function CategorySection({
   };
 
   const gridClass = viewMode === 'detailed'
-    ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
-    : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 3xl:grid-cols-10';
+    ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7'
+    : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8';
 
   return (
     <section id={`cat-${category.id}`} data-category-section className="mb-8 scroll-mt-20">
@@ -55,7 +55,7 @@ export function CategorySection({
       {links.length > 0 && (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={links.map(l => l.id)} strategy={rectSortingStrategy}>
-            <div className={`grid gap-3 ${gridClass}`}>
+            <div className={`grid gap-5 ${gridClass}`}>
               {links.map(link => (
                 <LinkCard
                   key={link.id}
@@ -93,7 +93,7 @@ export function CategorySection({
             </h3>
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => onDragEnd(e, child.id)}>
               <SortableContext items={childLinks.map(l => l.id)} strategy={rectSortingStrategy}>
-                <div className={`grid gap-3 ${gridClass}`}>
+                <div className={`grid gap-5 ${gridClass}`}>
                   {childLinks.map(link => (
                     <LinkCard
                       key={link.id}
