@@ -220,5 +220,5 @@ export async function onRequest(context) {
   }
 
   // 4. 最终降级：重定向至本地默认 favicon
-  return Response.redirect(`${url.origin}/favicon.ico`, 302);
+  return Response.redirect(`${url.origin}/icon-512.png`, 302);
 }

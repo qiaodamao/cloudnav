@@ -267,7 +267,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">网站图标 URL</label>
-                    <input type="text" value={settings.ai.faviconUrl || ''} onChange={(e) => updateAI('faviconUrl', e.target.value)} placeholder="/favicon.ico" className="w-full h-11 px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                    <input type="text" value={settings.ai.faviconUrl || ''} onChange={(e) => updateAI('faviconUrl', e.target.value)} placeholder="/icon-512.png" className="w-full h-11 px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
                   </div>
                 </div>
               </section>

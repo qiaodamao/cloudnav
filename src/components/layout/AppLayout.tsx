@@ -153,7 +153,7 @@ export function AppLayout() {
         link.rel = 'icon';
         document.head.appendChild(link);
       }
-      link.href = aiConfig.faviconUrl || '/favicon.ico';
+      link.href = aiConfig.faviconUrl || '/icon-512.png';
     }
   }, [aiConfig?.websiteTitle, aiConfig?.faviconUrl]);
 
