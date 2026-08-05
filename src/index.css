@@ -122,7 +122,7 @@ html.dark body {
 
 /* 浅色模式下书签卡片描边色覆盖：抵消上方 [class*="dark:"] 的 !important 覆盖 */
 html:not(.dark) .link-card:not(.border-red-200) {
-  border-color: #f3f4f6 !important;
+  border-color: #e3e8f7 !important;
 }
 
 .link-card:nth-child(1) { animation-delay: 0ms; }
