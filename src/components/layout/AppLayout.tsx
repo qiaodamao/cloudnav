@@ -11,6 +11,7 @@ import { MainContent } from './MainContent';
 import { ContentSkeleton } from './ContentSkeleton';
 import { LinkItem, Category } from '../../../types';
 import AuthModal from '../../../components/AuthModal';
+import AccessModal from '../../../components/AccessModal';
 
 const LinkModal = lazy(() => import('../../../components/LinkModal'));
 const CategoryManagerModal = lazy(() => import('../../../components/CategoryManagerModal'));
@@ -24,7 +25,7 @@ const QRCodeModal = lazy(() => import('../../../components/QRCodeModal'));
 
 export function AppLayout() {
   // Contexts
-  const { authToken, requiresAuth, isCheckingAuth, capabilities, login, logout } = useAuthContext();
+  const { authToken, requiresAuth, isCheckingAuth, capabilities, login, logout, requiresAccess, isAccessVerified, isCheckingAccess, accessLogin } = useAuthContext();
   const { links = [], addLink, updateLink, deleteLink, deleteLinks, setLinksAndSync } = useLinksContext();
   const { categories = [], categoryTree = [], setCategoriesAndSync, unlockedCategoryIds = new Set(), unlockCategory } = useCategoriesContext();
   const { ai: aiConfig, icon: iconConfig, viewMode, showPinnedWebsites, weather, website, webdav, search, setAI, setIcon, setWebsite, setShowPinned, setWeather, setWebDav, setSearch, setViewMode } = useConfigContext();
@@ -78,8 +79,11 @@ export function AppLayout() {
   // Drag sort confirmation state
   const [pendingDragLinks, setPendingDragLinks] = useState<{ links: LinkItem[]; categories: Category[] } | null>(null);
 
-  // Initialize data
+  // Initialize data (访问密码验证后才初始化)
   useEffect(() => {
+    // 访问密码未验证时不初始化数据
+    if (requiresAccess && !isAccessVerified) return;
+
     const init = async () => {
       await initData();
       setIsInitialLoading(false);
@@ -140,7 +144,7 @@ export function AppLayout() {
     window.addEventListener('keydown', handleGlobalKeyDown);
     init();
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [initData]);
+  }, [initData, requiresAccess, isAccessVerified]);
 
   // Apply dynamic website title and favicon
   useEffect(() => {
@@ -396,6 +400,16 @@ export function AppLayout() {
   const toggleEditMode = useCallback(() => {
     setIsEditMode(prev => !prev);
   }, []);
+
+  // 访问密码检查中
+  if (isCheckingAccess) {
+    return <div className="flex h-screen bg-slate-50 dark:bg-slate-900" />;
+  }
+
+  // 需要访问密码但未验证
+  if (requiresAccess && !isAccessVerified) {
+    return <AccessModal isOpen={true} onLogin={accessLogin} />;
+  }
 
   // Loading state
   if (isInitialLoading) {

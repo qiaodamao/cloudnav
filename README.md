@@ -126,7 +126,8 @@
 
 | 变量 | 说明 | 必填 | 默认值 |
 |------|------|------|--------|
-| `PASSWORD` | 管理后台登录密码 | 是 | - |
+| `PASSWORD` | 管理后台登录密码（用于管理操作） | 是 | - |
+| `ACCESS_PASSWORD` | 全局访问密码（访问站点需先验证，与管理员密码独立） | 否 | - |
 | `ALLOWED_ORIGIN` | CORS 允许的域名 | 否 | `*` |
 | `UPLOAD_PLATFORM` | 上传与图标存储平台，部署到 Cloudflare 时可设为 `cloudflare` | 否 | - |
 

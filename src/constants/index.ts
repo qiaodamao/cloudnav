@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
   LINK: '/api/link',
   WEBDAV: '/api/webdav',
   AUTH: '/api/auth',
+  ACCESS: '/api/access',
 } as const
 
 export const DEFAULT_ICON_CONFIG = {

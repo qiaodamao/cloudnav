@@ -59,6 +59,46 @@ export async function verifyAuth({ providedPassword, serverPassword, kv }) {
 }
 
 /**
+ * 验证访问令牌（访问密码登录后生成的 token，存于 cookie）
+ * 与管理员密码体系独立，用于全局访问控制
+ * @param {object} env - 函数 context.env
+ * @param {string} token - cookie 中的访问令牌
+ * @returns {Promise<boolean>}
+ */
+export async function verifyAccessToken(env, token) {
+  if (!token) return false;
+  try {
+    const kv = getKV(env);
+    const val = await kv.get(`access_token:${token}`);
+    return val === 'valid';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 生成安全随机 Token（32 字节 hex = 64 字符）
+ * @returns {string}
+ */
+export function generateSecureToken() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * 从 Cookie 字符串中解析指定字段的值
+ * @param {string} cookieStr - request.headers.get('cookie')
+ * @param {string} name - cookie 字段名
+ * @returns {string|null}
+ */
+export function parseCookie(cookieStr, name) {
+  if (!cookieStr) return null;
+  const match = cookieStr.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`));
+  return match ? match[1] : null;
+}
+
+/**
  * 创建标准 JSON 响应
  * @param {any} data - 响应数据
  * @param {number} status - HTTP 状态码
