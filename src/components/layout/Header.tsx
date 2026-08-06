@@ -251,7 +251,7 @@ export function Header({
           )}
 
           {/* Weather display */}
-          <div className="shrink-0">
+          <div className="shrink-0 hidden md:block">
             <WeatherDisplay config={weather} />
           </div>
 
