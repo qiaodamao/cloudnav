@@ -1,10 +1,8 @@
 # 个人导航 (CloudNav)
 
-> [!WARNING]
-> **本项目完全基于 AI 构建，我对项目中的代码一无所知。如果有 Bug 和功能需求请 Fork 后自行处理。**
+**本项目完全基于 AI 构建，如果有 Bug 和功能需求请 Fork 后自行处理。**
 
-> [!NOTE]
-> **基于 EdgeOne Pages 开发。对 Cloudflare Pages 和 Vercel 只进行过简单地测试。**
+**基于 EdgeOne Pages 开发。**
 
 **一个现代化云端导航 / 书签管理页面。**
 
@@ -177,10 +175,6 @@ vercel dev
 ├── edgeone.json               # EdgeOne Pages 配置
 └── package.json               # 项目依赖
 ```
-
-## Inspiration
-
-- [CloudNav-abcd](https://github.com/aabacada/CloudNav-abcd)
 
 ## 📄 License
 
