@@ -186,14 +186,15 @@ const BackupModal: React.FC<BackupModalProps> = ({
         setSyncStatus('error');
         const errInfo = result.error || '';
         const detail = result.detail || '';
+        const targetUrl = result.targetUrl || '';
         // 常见错误码翻译，便于用户判断
         let hint = '';
         if (/401|403/.test(errInfo)) hint = '（账号或密码错误 / 坚果云需使用应用密码）';
-        else if (/413|payload|too large|too large/i.test(errInfo + detail)) hint = '（备份文件过大，建议减少图标数量）';
-        else if (/404/.test(errInfo)) hint = '（WebDAV 路径不存在，检查 URL）';
+        else if (/413|payload|too large/i.test(errInfo + detail)) hint = '（备份文件过大，建议减少图标数量）';
+        else if (/404/.test(errInfo)) hint = '（目标路径不存在，已尝试自动创建目录仍失败，请检查 URL）';
         else if (/409/.test(errInfo)) hint = '（路径冲突）';
         else if (/Network/.test(errInfo)) hint = '（网络或代理问题）';
-        setStatusMsg(`上传失败：${errInfo}${hint}${detail ? `\n${detail.slice(0, 200)}` : ''}`);
+        setStatusMsg(`上传失败：${errInfo}${hint}${targetUrl ? `\n目标: ${targetUrl}` : ''}${detail ? `\n${detail.slice(0, 200)}` : ''}`);
     }
   };
 

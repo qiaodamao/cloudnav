@@ -43,6 +43,15 @@ export async function onRequest(context) {
       method = 'PROPFIND';
       headers['Depth'] = '0';
     } else if (operation === 'upload') {
+      // 先确保目标目录存在（MKCOL 创建目录，已存在返回 405，忽略）
+      try {
+        await fetch(baseUrl, {
+          method: 'MKCOL',
+          headers: { 'Authorization': authHeader, 'User-Agent': 'CloudNav/1.0' }
+        });
+      } catch (e) {
+        // 忽略 MKCOL 错误，继续尝试 PUT
+      }
       fetchUrl = fileUrl;
       method = 'PUT';
       headers['Content-Type'] = 'application/json';
@@ -76,7 +85,8 @@ export async function onRequest(context) {
         success: false,
         status: response.status,
         error: `WebDAV returned ${response.status}`,
-        detail: errText.slice(0, 500)
+        detail: errText.slice(0, 500),
+        targetUrl: operation === 'upload' ? fileUrl : baseUrl
       }, 200, corsHeaders);
     }
     return jsonResponse({ success: true, status: response.status }, 200, corsHeaders);
