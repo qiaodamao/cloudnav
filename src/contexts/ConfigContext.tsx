@@ -169,15 +169,24 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setDarkMode = useCallback((dark: boolean) => {
+    // 切换瞬间临时禁用所有 transition，避免颜色过渡造成"延迟感"
+    const docEl = document.documentElement;
+    docEl.classList.add('theme-transitioning');
     dispatch({ type: 'SET_DARK_MODE', payload: dark });
     localStorage.setItem('cloudnav_theme_preference', dark ? 'dark' : 'light');
     if (dark) {
-      document.documentElement.classList.add('dark');
-      document.documentElement.setAttribute('data-theme', 'dark');
+      docEl.classList.add('dark');
+      docEl.setAttribute('data-theme', 'dark');
     } else {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.removeAttribute('data-theme');
+      docEl.classList.remove('dark');
+      docEl.removeAttribute('data-theme');
     }
+    // 双 rAF：第一帧让浏览器应用新样式，第二帧移除禁用类
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        docEl.classList.remove('theme-transitioning');
+      });
+    });
   }, []);
 
   const syncConfigToKV = useCallback(async (authToken: string) => {

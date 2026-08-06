@@ -257,36 +257,39 @@ export function Header({
 
           {/* Removed sync status indicators */}
 
-          {/* Theme toggle */}
-          <button onClick={() => setDarkMode(!darkMode)} className={`${isMobileSearchOpen ? 'hidden' : 'flex'} items-center justify-center p-2 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 h-[36px] min-w-[36px] cursor-pointer`}>
-            {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
+          {/* View mode toggle + Theme toggle - 移动端: 深浅模式在前，PC端: 简约/详情在前 */}
+          <div className={`${isMobileSearchOpen ? 'hidden' : 'flex'} items-center gap-2 flex-row-reverse md:flex-row`}>
+            {/* View mode toggle */}
+            <div
+              className="flex items-center bg-slate-200 dark:bg-slate-700 rounded-full h-[36px] shrink-0 border border-slate-300/50 p-0.5"
+              style={darkMode ? { border: 'none' } : {}}
+            >
+              <button
+                onClick={() => setViewMode('compact')}
+                className={`px-3 py-2 text-xs font-medium rounded-full transition-all flex items-center justify-center h-full min-w-[40px] leading-none cursor-pointer ${
+                  viewMode === 'compact'
+                    ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200/50'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100'
+                }`}
+                style={darkMode && viewMode === 'compact' ? { border: 'none' } : {}}
+                title="简约版视图"
+              >简约</button>
+              <button
+                onClick={() => setViewMode('detailed')}
+                className={`px-3 py-2 text-xs font-medium rounded-full transition-all flex items-center justify-center h-full min-w-[40px] leading-none cursor-pointer ${
+                  viewMode === 'detailed'
+                    ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200/50'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100'
+                }`}
+                style={darkMode && viewMode === 'detailed' ? { border: 'none' } : {}}
+                title="详情版视图"
+              >详情</button>
+            </div>
 
-          {/* View mode toggle */}
-          <div 
-            className={`${isMobileSearchOpen ? 'hidden' : 'flex'} items-center bg-slate-200 dark:bg-slate-700 rounded-full h-[36px] shrink-0 border border-slate-300/50 p-0.5`}
-            style={darkMode ? { border: 'none' } : {}}
-          >
-            <button
-              onClick={() => setViewMode('compact')}
-              className={`px-3 py-2 text-xs font-medium rounded-full transition-all flex items-center justify-center h-full min-w-[40px] leading-none cursor-pointer ${
-                viewMode === 'compact'
-                  ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200/50'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100'
-              }`}
-              style={darkMode && viewMode === 'compact' ? { border: 'none' } : {}}
-              title="简约版视图"
-            >简约</button>
-            <button
-              onClick={() => setViewMode('detailed')}
-              className={`px-3 py-2 text-xs font-medium rounded-full transition-all flex items-center justify-center h-full min-w-[40px] leading-none cursor-pointer ${
-                viewMode === 'detailed'
-                  ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200/50'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100'
-              }`}
-              style={darkMode && viewMode === 'detailed' ? { border: 'none' } : {}}
-              title="详情版视图"
-            >详情</button>
+            {/* Theme toggle */}
+            <button onClick={() => setDarkMode(!darkMode)} className="flex items-center justify-center p-2 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 h-[36px] min-w-[36px] cursor-pointer">
+              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
           </div>
 
           {/* Removed sync status indicator block */}

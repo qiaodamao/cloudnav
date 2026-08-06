@@ -24,6 +24,17 @@ html.dark {
   color-scheme: dark;
 }
 
+/* 切换深浅模式时临时禁用所有 transition，避免颜色过渡延迟 */
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: none !important;
+  transition-duration: 0s !important;
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+}
+
 /* 基础样式 */
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
