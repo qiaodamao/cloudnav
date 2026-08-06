@@ -99,7 +99,7 @@ const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ config }) => {
 
   return (
     <div
-      className="relative flex items-center gap-2 bg-slate-200 dark:bg-slate-700 rounded-full px-3 py-2 h-9 min-w-10 leading-none cursor-default group"
+      className="relative flex items-center gap-2 bg-[#f1f5f9] dark:bg-slate-700 rounded-full px-3 py-2 h-9 min-w-10 leading-none cursor-default group"
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >

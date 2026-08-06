@@ -261,27 +261,24 @@ export function Header({
           <div className={`${isMobileSearchOpen ? 'hidden' : 'flex'} items-center gap-2 flex-row-reverse md:flex-row`}>
             {/* View mode toggle */}
             <div
-              className="flex items-center bg-[#f1f5f9] dark:bg-slate-700 rounded-full h-[36px] shrink-0 border border-slate-300/50 p-0.5"
-              style={darkMode ? { border: 'none' } : {}}
+              className="flex items-center bg-[#f1f5f9] dark:bg-slate-700 rounded-full h-[36px] shrink-0 p-0.5"
             >
               <button
                 onClick={() => setViewMode('compact')}
-                className={`px-3 py-2 text-xs font-medium rounded-full transition-all flex items-center justify-center h-full min-w-[40px] leading-none cursor-pointer ${
+                className={`px-3 py-2 text-xs font-medium rounded-full transition-colors flex items-center justify-center h-full min-w-[40px] leading-none cursor-pointer focus:outline-none focus-visible:outline-none ${
                   viewMode === 'compact'
-                    ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200/50'
+                    ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100'
                 }`}
-                style={darkMode && viewMode === 'compact' ? { border: 'none' } : {}}
                 title="简约版视图"
               >简约</button>
               <button
                 onClick={() => setViewMode('detailed')}
-                className={`px-3 py-2 text-xs font-medium rounded-full transition-all flex items-center justify-center h-full min-w-[40px] leading-none cursor-pointer ${
+                className={`px-3 py-2 text-xs font-medium rounded-full transition-colors flex items-center justify-center h-full min-w-[40px] leading-none cursor-pointer focus:outline-none focus-visible:outline-none ${
                   viewMode === 'detailed'
-                    ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200/50'
+                    ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100'
                 }`}
-                style={darkMode && viewMode === 'detailed' ? { border: 'none' } : {}}
                 title="详情版视图"
               >详情</button>
             </div>
