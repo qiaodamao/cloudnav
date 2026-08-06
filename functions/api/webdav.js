@@ -69,18 +69,23 @@ export async function onRequest(context) {
         // 忽略 MKCOL 错误，继续尝试 PUT
       }
 
+      // 支持自定义文件名（用于恢复前自动备份，不影响主备份文件）
+      const customFilename = payload && payload._filename;
+      const targetFilename = customFilename || filename;
+      const targetFileUrl = storageBaseUrl + targetFilename;
+
       // 1. 上传 JSON 备份
-      const jsonPutRes = await fetch(fileUrl, {
+      const jsonPutRes = await fetch(targetFileUrl, {
         method: 'PUT',
         headers: { 'Authorization': authHeader, 'User-Agent': 'CloudNav/1.0', 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
       const jsonSuccess = jsonPutRes.ok || jsonPutRes.status === 207;
 
-      // 2. 上传 HTML 书签文件（失败不影响主流程，仅记录结果）
+      // 2. 上传 HTML 书签文件（仅主备份文件，且提供了 bookmarkHtml 时才上传）
       let htmlSuccess = true;
       let htmlErr = '';
-      if (payload && payload.bookmarkHtml) {
+      if (!customFilename && payload && payload.bookmarkHtml) {
         try {
           const htmlRes = await fetch(htmlFileUrl, {
             method: 'PUT',
@@ -106,7 +111,7 @@ export async function onRequest(context) {
           status: jsonPutRes.status,
           error: `WebDAV returned ${jsonPutRes.status}`,
           detail: errText.slice(0, 500),
-          targetUrl: fileUrl,
+          targetUrl: targetFileUrl,
           htmlUploaded: htmlSuccess,
           htmlError: htmlErr
         }, 200, corsHeaders);

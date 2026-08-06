@@ -34,8 +34,13 @@ export const checkWebDavConnection = async (config: WebDavConfig): Promise<boole
     return result?.success === true;
 };
 
-export const uploadBackup = async (config: WebDavConfig, data: { links: LinkItem[], categories: Category[], searchConfig?: SearchConfig, aiConfig?: AIConfig, uploadedIcons?: any[], bookmarkHtml?: string }): Promise<{ success: boolean; error?: string; detail?: string; targetUrl?: string; htmlUploaded?: boolean; htmlError?: string }> => {
-    const result: any = await callWebDavProxy('upload', config, data);
+export const uploadBackup = async (
+    config: WebDavConfig,
+    data: { links: LinkItem[], categories: Category[], searchConfig?: SearchConfig, aiConfig?: AIConfig, uploadedIcons?: any[], bookmarkHtml?: string },
+    options?: { filename?: string }
+): Promise<{ success: boolean; error?: string; detail?: string; targetUrl?: string; htmlUploaded?: boolean; htmlError?: string }> => {
+    const payload = options?.filename ? { ...data, _filename: options.filename } : data;
+    const result: any = await callWebDavProxy('upload', config, payload);
     if (result?.success === true) return { success: true, htmlUploaded: result?.htmlUploaded, htmlError: result?.htmlError };
     return {
         success: false,

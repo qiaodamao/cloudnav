@@ -203,11 +203,34 @@ const BackupModal: React.FC<BackupModalProps> = ({
 
   const handleRestoreFromCloud = async () => {
     if (!confirm("确定要从 WebDAV 恢复吗？这将覆盖当前的本地数据。")) return;
-    
+
+    // 恢复前自动把当前本地数据备份到云端（安全网，防止恢复老数据丢失本地新增）
+    setSyncStatus('uploading');
+    setStatusMsg('正在备份当前数据到云端（恢复前安全网）...');
+    const preRestoreResult = await uploadBackup(
+      config,
+      { links, categories, searchConfig, aiConfig },
+      { filename: 'cloudnav_backup_pre_restore.json' }
+    );
+
+    if (!preRestoreResult.success) {
+      // 自动备份失败，警告用户决定是否继续
+      const proceed = confirm(
+        `恢复前自动备份失败：${preRestoreResult.error || '未知错误'}\n\n` +
+        `继续恢复将覆盖当前本地数据，且无法找回。\n\n` +
+        `是否仍要继续恢复？（不推荐）`
+      );
+      if (!proceed) {
+        setSyncStatus('error');
+        setStatusMsg('已取消恢复。建议先手动上传备份再重试。');
+        return;
+      }
+    }
+
     setSyncStatus('downloading');
-    setStatusMsg('正在下载...');
+    setStatusMsg('正在下载云端备份...');
     const data = await downloadBackup(config);
-    
+
     if (data) {
         let finalLinks = data.links;
         if (data.uploadedIcons && Array.isArray(data.uploadedIcons) && data.uploadedIcons.length > 0) {
@@ -226,7 +249,9 @@ const BackupModal: React.FC<BackupModalProps> = ({
             onRestoreAIConfig(data.aiConfig);
         }
         setSyncStatus('success');
-        setStatusMsg('恢复成功！');
+        setStatusMsg(preRestoreResult.success
+            ? '恢复成功！（当前数据已自动备份至 cloudnav_backup_pre_restore.json）'
+            : '恢复成功！');
     } else {
         setSyncStatus('error');
         setStatusMsg('下载失败或文件格式错误。');
