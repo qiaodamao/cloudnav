@@ -257,6 +257,11 @@ export function Header({
 
           {/* Removed sync status indicators */}
 
+          {/* Theme toggle */}
+          <button onClick={() => setDarkMode(!darkMode)} className={`${isMobileSearchOpen ? 'hidden' : 'flex'} items-center justify-center p-2 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 h-[36px] min-w-[36px] cursor-pointer`}>
+            {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+
           {/* View mode toggle */}
           <div 
             className={`${isMobileSearchOpen ? 'hidden' : 'flex'} items-center bg-slate-200 dark:bg-slate-700 rounded-full h-[36px] shrink-0 border border-slate-300/50 p-0.5`}
@@ -283,11 +288,6 @@ export function Header({
               title="详情版视图"
             >详情</button>
           </div>
-
-          {/* Theme toggle */}
-          <button onClick={() => setDarkMode(!darkMode)} className={`${isMobileSearchOpen ? 'hidden' : 'flex'} items-center justify-center p-2 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 h-[36px] min-w-[36px] cursor-pointer`}>
-            {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
 
           {/* Removed sync status indicator block */}
 
