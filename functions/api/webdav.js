@@ -26,9 +26,22 @@ export async function onRequest(context) {
     let baseUrl = config.url.trim();
     if (!baseUrl.endsWith('/')) baseUrl += '/';
 
-    const filename = 'cloudnav_backup.json';
-    const fileUrl = baseUrl + filename;
     const authHeader = `Basic ${btoa(`${config.username}:${config.password}`)}`;
+
+    // 坚果云根目录 /dav/ 不允许直接写文件，会返回 404 ObjectNotFound
+    // 检测到根目录配置时，自动使用 cloudnav 子目录存放备份
+    let storageBaseUrl = baseUrl;
+    try {
+      const u = new URL(baseUrl);
+      const p = u.pathname.toLowerCase();
+      const isJianguoyunRoot = /jianguoyun\.com/.test(baseUrl) && (p === '/dav/' || p === '/dav');
+      if (isJianguoyunRoot) {
+        storageBaseUrl = baseUrl + 'cloudnav/';
+      }
+    } catch (e) { /* URL 解析失败，保持原样 */ }
+
+    const filename = 'cloudnav_backup.json';
+    const fileUrl = storageBaseUrl + filename;
 
     let fetchUrl = baseUrl;
     let method = 'PROPFIND';
@@ -39,13 +52,14 @@ export async function onRequest(context) {
     let requestBody = undefined;
 
     if (operation === 'check') {
+      // 测试连接用用户配置的根目录
       fetchUrl = baseUrl;
       method = 'PROPFIND';
       headers['Depth'] = '0';
     } else if (operation === 'upload') {
-      // 先确保目标目录存在（MKCOL 创建目录，已存在返回 405，忽略）
+      // 确保存储目录存在（MKCOL 创建目录，已存在返回 405，忽略）
       try {
-        await fetch(baseUrl, {
+        await fetch(storageBaseUrl, {
           method: 'MKCOL',
           headers: { 'Authorization': authHeader, 'User-Agent': 'CloudNav/1.0' }
         });
