@@ -4,6 +4,7 @@ import { STORAGE_KEYS, API_ENDPOINTS } from '../constants';
 import { useLinksContext } from '../contexts/LinksContext';
 import { useCategoriesContext } from '../contexts/CategoriesContext';
 import { useConfigContext } from '../contexts/ConfigContext';
+import { configManager } from '../utils/configManager';
 
 /**
  * 数据同步 Hook：管理 localStorage ↔ KV 的加载和同步
@@ -68,7 +69,7 @@ export function useDataSync() {
 
   // 从 KV 加载各个配置
   const loadConfigsFromCloud = useCallback(async () => {
-    const configKeys = ['search', 'website', 'ai', 'weather', 'icon'];
+    const configKeys = ['search', 'website', 'ai', 'weather', 'icon', 'webdav'];
     const configMap: Record<string, any> = {};
 
     await Promise.all(configKeys.map(async (key) => {
@@ -84,6 +85,11 @@ export function useDataSync() {
         console.error(`Load config ${key} failed:`, e);
       }
     }));
+
+    // WebDAV 配置写回 localStorage，避免刷新后丢失（BackupModal 直接读取本地配置）
+    if (configMap.webdav) {
+      configManager.updateWebDavConfig(configMap.webdav);
+    }
 
     // 更新 ConfigContext
     if (Object.keys(configMap).length > 0) {

@@ -2,7 +2,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getKV, getCorsHeaders, verifyAuth } from './_kvHelper.js';
 
-const CONFIG_SECTIONS = ['ai', 'website', 'weather', 'search', 'icon', 'view', 'ui'];
+const CONFIG_SECTIONS = ['ai', 'website', 'weather', 'search', 'icon', 'view', 'ui', 'webdav'];
 
 const STORAGE_KEYS = {
   CONFIG_KEY: 'config',

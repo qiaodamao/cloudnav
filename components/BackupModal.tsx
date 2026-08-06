@@ -163,8 +163,21 @@ const BackupModal: React.FC<BackupModalProps> = ({
     setIsTesting(false);
   };
 
-  const handleSaveConfig = () => {
+  const handleSaveConfig = async () => {
     onSaveWebDavConfig(config);
+    // 同步到云端 KV，便于换设备后保留 WebDAV 配置
+    try {
+      const authToken = localStorage.getItem('cloudnav_auth_token') || localStorage.getItem('authToken') || '';
+      if (authToken) {
+        await fetch('/api/storage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-auth-password': authToken },
+          body: JSON.stringify({ saveConfig: 'webdav', config }),
+        });
+      }
+    } catch (e) {
+      console.error('WebDAV config sync to KV failed:', e);
+    }
     // Automatically test upon save if enabled
     if (config.enabled) {
         handleTestConnection();
