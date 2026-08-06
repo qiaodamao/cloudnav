@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy, useCallback } from 'react';
+import React, { useState, useEffect, Suspense, lazy, useCallback, useRef } from 'react';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useLinksContext } from '../../contexts/LinksContext';
 import { useCategoriesContext } from '../../contexts/CategoriesContext';
@@ -26,7 +26,7 @@ const QRCodeModal = lazy(() => import('../../../components/QRCodeModal'));
 
 export function AppLayout() {
   // Contexts
-  const { authToken, requiresAuth, isCheckingAuth, capabilities, login, logout, requiresAccess, isAccessVerified, isCheckingAccess, accessLogin } = useAuthContext();
+  const { authToken, requiresAuth, isCheckingAuth, capabilities, login, logout, requiresAccess, isAccessVerified, isCheckingAccess, accessLogin, authExpired } = useAuthContext();
   const { links = [], addLink, updateLink, deleteLink, deleteLinks, setLinksAndSync } = useLinksContext();
   const { categories = [], categoryTree = [], setCategoriesAndSync, unlockedCategoryIds = new Set(), unlockCategory } = useCategoriesContext();
   const { ai: aiConfig, icon: iconConfig, viewMode, showPinnedWebsites, weather, website, webdav, search, setAI, setIcon, setWebsite, setShowPinned, setWeather, setWebDav, setSearch, setViewMode } = useConfigContext();
@@ -168,6 +168,22 @@ export function AppLayout() {
       setIsAuthOpen(false);
     }
   }, [authToken]);
+
+  // token 过期时自动打开登录弹窗
+  useEffect(() => {
+    if (authExpired) {
+      setIsAuthOpen(true);
+    }
+  }, [authExpired]);
+
+  // 重新登录后刷新页面，同步云端数据（回滚之前未保存的乐观更新）
+  const prevAuthExpired = useRef(false);
+  useEffect(() => {
+    if (prevAuthExpired.current && !authExpired && authToken) {
+      window.location.reload();
+    }
+    prevAuthExpired.current = authExpired;
+  }, [authExpired, authToken]);
 
   // Handle URL params for bookmarklet
   useEffect(() => {

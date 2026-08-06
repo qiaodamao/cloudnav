@@ -86,7 +86,7 @@ export function CategoriesProvider({ children }: { children: React.ReactNode }) 
     expandedCategories: new Set(),
   });
 
-  const { authToken } = useAuthContext();
+  const { authToken, markAuthExpired } = useAuthContext();
 
   const initCategories = useCallback((categories: Category[]) => {
     dispatch({ type: 'SET_CATEGORIES', payload: categories });
@@ -112,19 +112,27 @@ export function CategoriesProvider({ children }: { children: React.ReactNode }) 
     dispatch({ type: 'TOGGLE_EXPAND', payload: id });
   }, []);
 
-  const persist = useCallback((categories: Category[], links: LinkItem[]) => {
+  const persist = useCallback(async (categories: Category[], links: LinkItem[]) => {
     localStorage.setItem(STORAGE_KEYS.LOCAL_STORAGE_KEY, JSON.stringify({ links, categories }));
     if (authToken) {
-      fetch(API_ENDPOINTS.STORAGE, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-password': authToken,
-        },
-        body: JSON.stringify({ links, categories }),
-      }).catch(e => console.error('Sync categories failed:', e));
+      try {
+        const res = await fetch(API_ENDPOINTS.STORAGE, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-password': authToken,
+          },
+          body: JSON.stringify({ links, categories }),
+        });
+        if (res.status === 401) {
+          // token 过期：弹窗提示并触发重新登录流程
+          markAuthExpired();
+        }
+      } catch (e) {
+        console.error('Sync categories failed:', e);
+      }
     }
-  }, [authToken]);
+  }, [authToken, markAuthExpired]);
 
   const setCategoriesAndSync = useCallback((categories: Category[], links: LinkItem[]) => {
     dispatch({ type: 'SET_CATEGORIES', payload: categories });

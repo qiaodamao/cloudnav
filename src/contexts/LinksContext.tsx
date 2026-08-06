@@ -59,7 +59,7 @@ export function LinksProvider({ children }: { children: React.ReactNode }) {
     syncStatus: 'idle',
   });
 
-  const { authToken } = useAuthContext();
+  const { authToken, markAuthExpired } = useAuthContext();
 
   // 初始化（不触发同步）
   const initLinks = useCallback((links: LinkItem[]) => {
@@ -80,6 +80,8 @@ export function LinksProvider({ children }: { children: React.ReactNode }) {
       });
       if (res.status === 401) {
         dispatch({ type: 'SET_SYNC_STATUS', payload: 'error' });
+        // token 过期：弹窗提示并触发重新登录流程
+        markAuthExpired();
         return false;
       }
       if (!res.ok) throw new Error('Sync failed');
@@ -91,7 +93,7 @@ export function LinksProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'SET_SYNC_STATUS', payload: 'error' });
       return false;
     }
-  }, []);
+  }, [markAuthExpired]);
 
   // 持久化：本地 + 云端
   const persist = useCallback(async (links: LinkItem[], categories: Category[]) => {
