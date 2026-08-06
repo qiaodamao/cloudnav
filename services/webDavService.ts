@@ -34,14 +34,16 @@ export const checkWebDavConnection = async (config: WebDavConfig): Promise<boole
     return result?.success === true;
 };
 
-export const uploadBackup = async (config: WebDavConfig, data: { links: LinkItem[], categories: Category[], searchConfig?: SearchConfig, aiConfig?: AIConfig, uploadedIcons?: any[] }): Promise<{ success: boolean; error?: string; detail?: string; targetUrl?: string }> => {
+export const uploadBackup = async (config: WebDavConfig, data: { links: LinkItem[], categories: Category[], searchConfig?: SearchConfig, aiConfig?: AIConfig, uploadedIcons?: any[], bookmarkHtml?: string }): Promise<{ success: boolean; error?: string; detail?: string; targetUrl?: string; htmlUploaded?: boolean; htmlError?: string }> => {
     const result: any = await callWebDavProxy('upload', config, data);
-    if (result?.success === true) return { success: true };
+    if (result?.success === true) return { success: true, htmlUploaded: result?.htmlUploaded, htmlError: result?.htmlError };
     return {
         success: false,
         error: result?.error || 'Unknown error',
         detail: result?.detail || '',
-        targetUrl: result?.targetUrl || ''
+        targetUrl: result?.targetUrl || '',
+        htmlUploaded: result?.htmlUploaded,
+        htmlError: result?.htmlError
     };
 };
 

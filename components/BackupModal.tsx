@@ -178,15 +178,18 @@ const BackupModal: React.FC<BackupModalProps> = ({
       setStatusMsg(`正在打包本地图标 (${curr}/${tot})...`);
     });
     setStatusMsg('正在上传到云端...');
-    const result = await uploadBackup(config, { links, categories, searchConfig, aiConfig, uploadedIcons });
+    const bookmarkHtml = generateBookmarkHtml(links, categories);
+    const result = await uploadBackup(config, { links, categories, searchConfig, aiConfig, uploadedIcons, bookmarkHtml });
     if (result.success) {
         setSyncStatus('success');
-        setStatusMsg('备份成功！');
+        const htmlOk = result.htmlUploaded !== false;
+        setStatusMsg(htmlOk ? '备份成功！(JSON + HTML)' : 'JSON 备份成功，但 HTML 同步失败：' + (result.htmlError || '未知'));
     } else {
         setSyncStatus('error');
         const errInfo = result.error || '';
         const detail = result.detail || '';
         const targetUrl = result.targetUrl || '';
+        const htmlErr = result.htmlError || '';
         // 常见错误码翻译，便于用户判断
         let hint = '';
         if (/401|403/.test(errInfo)) hint = '（账号或密码错误 / 坚果云需使用应用密码）';
@@ -194,7 +197,7 @@ const BackupModal: React.FC<BackupModalProps> = ({
         else if (/404/.test(errInfo)) hint = '（目标路径不存在，已尝试自动创建目录仍失败，请检查 URL）';
         else if (/409/.test(errInfo)) hint = '（路径冲突）';
         else if (/Network/.test(errInfo)) hint = '（网络或代理问题）';
-        setStatusMsg(`上传失败：${errInfo}${hint}${targetUrl ? `\n目标: ${targetUrl}` : ''}${detail ? `\n${detail.slice(0, 200)}` : ''}`);
+        setStatusMsg(`上传失败：${errInfo}${hint}${targetUrl ? `\n目标: ${targetUrl}` : ''}${detail ? `\n${detail.slice(0, 200)}` : ''}${htmlErr ? `\nHTML: ${htmlErr}` : ''}`);
     }
   };
 

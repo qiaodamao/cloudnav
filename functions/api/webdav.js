@@ -42,6 +42,8 @@ export async function onRequest(context) {
 
     const filename = 'cloudnav_backup.json';
     const fileUrl = storageBaseUrl + filename;
+    const htmlFilename = 'cloudnav_bookmarks.html';
+    const htmlFileUrl = storageBaseUrl + htmlFilename;
 
     let fetchUrl = baseUrl;
     let method = 'PROPFIND';
@@ -66,10 +68,55 @@ export async function onRequest(context) {
       } catch (e) {
         // 忽略 MKCOL 错误，继续尝试 PUT
       }
-      fetchUrl = fileUrl;
-      method = 'PUT';
-      headers['Content-Type'] = 'application/json';
-      requestBody = JSON.stringify(payload);
+
+      // 1. 上传 JSON 备份
+      const jsonPutRes = await fetch(fileUrl, {
+        method: 'PUT',
+        headers: { 'Authorization': authHeader, 'User-Agent': 'CloudNav/1.0', 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const jsonSuccess = jsonPutRes.ok || jsonPutRes.status === 207;
+
+      // 2. 上传 HTML 书签文件（失败不影响主流程，仅记录结果）
+      let htmlSuccess = true;
+      let htmlErr = '';
+      if (payload && payload.bookmarkHtml) {
+        try {
+          const htmlRes = await fetch(htmlFileUrl, {
+            method: 'PUT',
+            headers: {
+              'Authorization': authHeader,
+              'User-Agent': 'CloudNav/1.0',
+              'Content-Type': 'text/html; charset=UTF-8'
+            },
+            body: payload.bookmarkHtml
+          });
+          htmlSuccess = htmlRes.ok || htmlRes.status === 207;
+          if (!htmlSuccess) htmlErr = `HTML ${htmlRes.status}`;
+        } catch (e) {
+          htmlSuccess = false;
+          htmlErr = String(e);
+        }
+      }
+
+      if (!jsonSuccess) {
+        const errText = await jsonPutRes.text().catch(() => '');
+        return jsonResponse({
+          success: false,
+          status: jsonPutRes.status,
+          error: `WebDAV returned ${jsonPutRes.status}`,
+          detail: errText.slice(0, 500),
+          targetUrl: fileUrl,
+          htmlUploaded: htmlSuccess,
+          htmlError: htmlErr
+        }, 200, corsHeaders);
+      }
+      return jsonResponse({
+        success: true,
+        status: jsonPutRes.status,
+        htmlUploaded: htmlSuccess,
+        htmlError: htmlErr
+      }, 200, corsHeaders);
     } else if (operation === 'download') {
       fetchUrl = fileUrl;
       method = 'GET';
