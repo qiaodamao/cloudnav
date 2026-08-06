@@ -61,14 +61,25 @@ export async function onRequest(context) {
         if (response.status === 404) {
           return jsonResponse({ error: 'Backup file not found' }, 404, corsHeaders);
         }
-        return jsonResponse({ error: `WebDAV Error: ${response.status}` }, response.status, corsHeaders);
+        const errText = await response.text().catch(() => '');
+        return jsonResponse({ error: `WebDAV Error: ${response.status}`, detail: errText.slice(0, 500) }, response.status, corsHeaders);
       }
       const data = await response.json();
       return jsonResponse(data, 200, corsHeaders);
     }
 
+    // check / upload
     const success = response.ok || response.status === 207;
-    return jsonResponse({ success, status: response.status }, 200, corsHeaders);
+    if (!success) {
+      const errText = await response.text().catch(() => '');
+      return jsonResponse({
+        success: false,
+        status: response.status,
+        error: `WebDAV returned ${response.status}`,
+        detail: errText.slice(0, 500)
+      }, 200, corsHeaders);
+    }
+    return jsonResponse({ success: true, status: response.status }, 200, corsHeaders);
 
   } catch (err) {
     console.error('WebDAV API error:', err);

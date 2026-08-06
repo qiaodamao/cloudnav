@@ -178,13 +178,22 @@ const BackupModal: React.FC<BackupModalProps> = ({
       setStatusMsg(`正在打包本地图标 (${curr}/${tot})...`);
     });
     setStatusMsg('正在上传到云端...');
-    const success = await uploadBackup(config, { links, categories, searchConfig, aiConfig, uploadedIcons });
-    if (success) {
+    const result = await uploadBackup(config, { links, categories, searchConfig, aiConfig, uploadedIcons });
+    if (result.success) {
         setSyncStatus('success');
         setStatusMsg('备份成功！');
     } else {
         setSyncStatus('error');
-        setStatusMsg('上传失败，请检查配置或网络。');
+        const errInfo = result.error || '';
+        const detail = result.detail || '';
+        // 常见错误码翻译，便于用户判断
+        let hint = '';
+        if (/401|403/.test(errInfo)) hint = '（账号或密码错误 / 坚果云需使用应用密码）';
+        else if (/413|payload|too large|too large/i.test(errInfo + detail)) hint = '（备份文件过大，建议减少图标数量）';
+        else if (/404/.test(errInfo)) hint = '（WebDAV 路径不存在，检查 URL）';
+        else if (/409/.test(errInfo)) hint = '（路径冲突）';
+        else if (/Network/.test(errInfo)) hint = '（网络或代理问题）';
+        setStatusMsg(`上传失败：${errInfo}${hint}${detail ? `\n${detail.slice(0, 200)}` : ''}`);
     }
   };
 

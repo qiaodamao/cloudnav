@@ -14,16 +14,17 @@ const callWebDavProxy = async (operation: 'check' | 'upload' | 'download', confi
                 payload
             })
         });
-        
+
         if (!response.ok) {
-            console.error(`WebDAV Proxy Error: ${response.status}`);
-            return null;
+            const errText = await response.text().catch(() => '');
+            console.error(`WebDAV Proxy Error: ${response.status}`, errText);
+            return { success: false, status: response.status, error: `Proxy ${response.status}`, detail: errText.slice(0, 500) };
         }
-        
+
         return await response.json();
-    } catch (e) {
+    } catch (e: any) {
         console.error("WebDAV Proxy Network Error", e);
-        return null;
+        return { success: false, error: `Network: ${e?.message || String(e)}` };
     }
 }
 
@@ -33,14 +34,19 @@ export const checkWebDavConnection = async (config: WebDavConfig): Promise<boole
     return result?.success === true;
 };
 
-export const uploadBackup = async (config: WebDavConfig, data: { links: LinkItem[], categories: Category[], searchConfig?: SearchConfig, aiConfig?: AIConfig }): Promise<boolean> => {
-    const result = await callWebDavProxy('upload', config, data);
-    return result?.success === true;
+export const uploadBackup = async (config: WebDavConfig, data: { links: LinkItem[], categories: Category[], searchConfig?: SearchConfig, aiConfig?: AIConfig, uploadedIcons?: any[] }): Promise<{ success: boolean; error?: string; detail?: string }> => {
+    const result: any = await callWebDavProxy('upload', config, data);
+    if (result?.success === true) return { success: true };
+    return {
+        success: false,
+        error: result?.error || 'Unknown error',
+        detail: result?.detail || ''
+    };
 };
 
 export const downloadBackup = async (config: WebDavConfig): Promise<{ links: LinkItem[], categories: Category[], searchConfig?: SearchConfig, aiConfig?: AIConfig } | null> => {
     const result = await callWebDavProxy('download', config);
-    
+
     // Check if the result looks like valid backup data
     if (result && Array.isArray(result.links) && Array.isArray(result.categories)) {
         return result as { links: LinkItem[], categories: Category[], searchConfig?: SearchConfig, aiConfig?: AIConfig };
