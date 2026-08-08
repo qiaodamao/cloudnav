@@ -43,6 +43,24 @@ const getConnectionHint = (url) => {
   } catch (e) { return ''; }
 };
 
+// 清洗错误详情：网关返回的 HTML 错误页（如 EdgeOne 504/502 页面）对用户无意义，替换为可读说明
+const cleanErrorDetail = (status, rawDetail, hint) => {
+  // 502/503/504 通常是网关/代理层错误（EdgeOne 无法连接到目标 WebDAV 服务器）
+  if ([502, 503, 504].includes(status)) {
+    const gatewayMsg = `网关错误 ${status}：后端代理无法连接到 WebDAV 服务器（可能是目标服务器不可达或被墙）。`;
+    return hint ? `${gatewayMsg}\n建议：${hint}` : gatewayMsg;
+  }
+  // detail 里是 HTML 错误页（doctype/html 标签），直接丢弃，只保留 hint
+  if (rawDetail && /<(!doctype|html|head|body)/i.test(rawDetail)) {
+    return hint ? `服务器返回了无法解析的 HTML 错误页。\n建议：${hint}` : '服务器返回了无法解析的 HTML 错误页。';
+  }
+  // 普通文本错误，保留并追加 hint
+  if (rawDetail && hint) {
+    return `${rawDetail.slice(0, 500)}\n建议：${hint}`;
+  }
+  return hint ? `建议：${hint}` : (rawDetail || '').slice(0, 500);
+};
+
 export async function onRequest(context) {
   const { request, env } = context;
   const corsHeaders = getCorsHeaders(env);
@@ -127,7 +145,7 @@ export async function onRequest(context) {
         return jsonResponse({
           success: false,
           error: e.isTimeout ? '上传超时' : '上传失败',
-          detail: e.message + (hint ? `\n建议：${hint}` : ''),
+          detail: cleanErrorDetail(null, e.message, hint),
           targetUrl: targetFileUrl,
           htmlUploaded: false,
           htmlError: ''
@@ -163,7 +181,7 @@ export async function onRequest(context) {
           success: false,
           status: jsonPutRes.status,
           error: `WebDAV returned ${jsonPutRes.status}`,
-          detail: errText.slice(0, 500) + (hint ? `\n建议：${hint}` : ''),
+          detail: cleanErrorDetail(jsonPutRes.status, errText, hint),
           targetUrl: targetFileUrl,
           htmlUploaded: htmlSuccess,
           htmlError: htmlErr
@@ -189,7 +207,7 @@ export async function onRequest(context) {
       return jsonResponse({
         success: false,
         error: e.isTimeout ? '连接超时' : '连接失败',
-        detail: e.message + (hint ? `\n建议：${hint}` : ''),
+        detail: cleanErrorDetail(null, e.message, hint),
         targetUrl: fetchUrl
       }, 200, corsHeaders);
     }
@@ -200,7 +218,7 @@ export async function onRequest(context) {
           return jsonResponse({ error: 'Backup file not found' }, 404, corsHeaders);
         }
         const errText = await response.text().catch(() => '');
-        return jsonResponse({ error: `WebDAV Error: ${response.status}`, detail: errText.slice(0, 500) + (hint ? `\n建议：${hint}` : '') }, response.status, corsHeaders);
+        return jsonResponse({ error: `WebDAV Error: ${response.status}`, detail: cleanErrorDetail(response.status, errText, hint) }, response.status, corsHeaders);
       }
       const data = await response.json();
       return jsonResponse(data, 200, corsHeaders);
@@ -214,7 +232,7 @@ export async function onRequest(context) {
         success: false,
         status: response.status,
         error: `WebDAV returned ${response.status}`,
-        detail: errText.slice(0, 500) + (hint ? `\n建议：${hint}` : ''),
+        detail: cleanErrorDetail(response.status, errText, hint),
         targetUrl: operation === 'upload' ? fileUrl : baseUrl
       }, 200, corsHeaders);
     }

@@ -3,6 +3,7 @@ import { X, Cloud, Download, Upload, CheckCircle2, AlertCircle, RefreshCw, Save,
 import { Category, LinkItem, WebDavConfig, SearchConfig, AIConfig } from '../types';
 import { checkWebDavConnection, uploadBackup, downloadBackup } from '../services/webDavService';
 import { generateBookmarkHtml, downloadHtmlFile } from '../services/exportService';
+import { useAuthContext } from '../src/contexts/AuthContext';
 
 interface BackupModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ const BackupModal: React.FC<BackupModalProps> = ({
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [importMsg, setImportMsg] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { markAuthExpired } = useAuthContext();
 
   useEffect(() => {
     if(isOpen) {
@@ -166,7 +168,14 @@ const BackupModal: React.FC<BackupModalProps> = ({
         setTestResult('success');
     } else {
         setTestResult('fail');
-        setTestDetail(`${result.error || '连接失败'}${result.detail ? `\n${result.detail}` : ''}`);
+        // detail 已包含可读的错误说明和建议时，优先只显示 detail
+        const detail = result.detail || '';
+        const error = result.error || '连接失败';
+        if (detail && detail.includes('建议')) {
+            setTestDetail(detail);
+        } else {
+            setTestDetail(`${error}${detail ? `\n${detail}` : ''}`);
+        }
     }
     setIsTesting(false);
   };
@@ -177,14 +186,31 @@ const BackupModal: React.FC<BackupModalProps> = ({
     try {
       const authToken = localStorage.getItem('cloudnav_auth_token') || localStorage.getItem('authToken') || '';
       if (authToken) {
-        await fetch('/api/storage', {
+        const res = await fetch('/api/storage', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-auth-password': authToken },
           body: JSON.stringify({ saveConfig: 'webdav', config }),
         });
+        if (res.status === 401) {
+          // token 过期：配置已本地保存，但未同步到云端
+          markAuthExpired();
+          return;
+        }
+        if (!res.ok) {
+          const errText = await res.text().catch(() => '');
+          setTestResult('fail');
+          setTestDetail(`配置已保存在本地，但同步到云端失败：${res.status}\n${errText.slice(0, 300)}`);
+          // 仍然继续测试连接
+        }
+      } else {
+        // 未登录：配置仅本地保存，提示用户
+        setTestResult('fail');
+        setTestDetail('当前未登录，配置仅保存在本地。登录后再次点击"保存配置"可同步到云端，避免刷新后丢失。');
       }
     } catch (e) {
       console.error('WebDAV config sync to KV failed:', e);
+      setTestResult('fail');
+      setTestDetail(`配置已保存在本地，但同步到云端失败：${String(e?.message || e)}`);
     }
     // Automatically test upon save if enabled
     if (config.enabled) {
@@ -209,16 +235,21 @@ const BackupModal: React.FC<BackupModalProps> = ({
         setSyncStatus('error');
         const errInfo = result.error || '';
         const detail = result.detail || '';
-        const targetUrl = result.targetUrl || '';
         const htmlErr = result.htmlError || '';
-        // 常见错误码翻译，便于用户判断
-        let hint = '';
-        if (/401|403/.test(errInfo)) hint = '（账号或密码错误 / 坚果云需使用应用密码）';
-        else if (/413|payload|too large/i.test(errInfo + detail)) hint = '（备份文件过大，建议减少图标数量）';
-        else if (/404/.test(errInfo)) hint = '（目标路径不存在，已尝试自动创建目录仍失败，请检查 URL）';
-        else if (/409/.test(errInfo)) hint = '（路径冲突）';
-        else if (/Network/.test(errInfo)) hint = '（网络或代理问题）';
-        setStatusMsg(`上传失败：${errInfo}${hint}${targetUrl ? `\n目标: ${targetUrl}` : ''}${detail ? `\n${detail.slice(0, 200)}` : ''}${htmlErr ? `\nHTML: ${htmlErr}` : ''}`);
+        // detail 已被后端清洗并包含"建议"时，优先只显示 detail（避免重复拼接 HTML 错误页等冗余信息）
+        if (detail && detail.includes('建议')) {
+            setStatusMsg(`上传失败：${detail}${htmlErr ? `\nHTML: ${htmlErr}` : ''}`);
+        } else {
+            const targetUrl = result.targetUrl || '';
+            // 常见错误码翻译，便于用户判断
+            let hint = '';
+            if (/401|403/.test(errInfo)) hint = '（账号或密码错误 / 坚果云需使用应用密码）';
+            else if (/413|payload|too large/i.test(errInfo + detail)) hint = '（备份文件过大，建议减少图标数量）';
+            else if (/404/.test(errInfo)) hint = '（目标路径不存在，已尝试自动创建目录仍失败，请检查 URL）';
+            else if (/409/.test(errInfo)) hint = '（路径冲突）';
+            else if (/Network/.test(errInfo)) hint = '（网络或代理问题）';
+            setStatusMsg(`上传失败：${errInfo}${hint}${targetUrl ? `\n目标: ${targetUrl}` : ''}${detail ? `\n${detail.slice(0, 200)}` : ''}${htmlErr ? `\nHTML: ${htmlErr}` : ''}`);
+        }
     }
   };
 
