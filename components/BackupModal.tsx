@@ -24,6 +24,7 @@ const BackupModal: React.FC<BackupModalProps> = ({
   const [config, setConfig] = useState<WebDavConfig>(webDavConfig);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<'success' | 'fail' | null>(null);
+  const [testDetail, setTestDetail] = useState('');
   const [syncStatus, setSyncStatus] = useState<'idle' | 'uploading' | 'downloading' | 'success' | 'error'>('idle');
   const [statusMsg, setStatusMsg] = useState('');
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -34,6 +35,7 @@ const BackupModal: React.FC<BackupModalProps> = ({
     if(isOpen) {
         setConfig(webDavConfig);
         setTestResult(null);
+        setTestDetail('');
         setSyncStatus('idle');
         setImportStatus('idle');
         setImportMsg('');
@@ -158,8 +160,14 @@ const BackupModal: React.FC<BackupModalProps> = ({
   const handleTestConnection = async () => {
     setIsTesting(true);
     setTestResult(null);
-    const success = await checkWebDavConnection(config);
-    setTestResult(success ? 'success' : 'fail');
+    setTestDetail('');
+    const result = await checkWebDavConnection(config);
+    if (result.success) {
+        setTestResult('success');
+    } else {
+        setTestResult('fail');
+        setTestDetail(`${result.error || '连接失败'}${result.detail ? `\n${result.detail}` : ''}`);
+    }
     setIsTesting(false);
   };
 
@@ -454,6 +462,11 @@ const BackupModal: React.FC<BackupModalProps> = ({
                         {testResult === 'success' && <span className="text-xs text-green-500 flex items-center gap-1"><CheckCircle2 size={12}/> 连接成功</span>}
                         {testResult === 'fail' && <span className="text-xs text-red-500 flex items-center gap-1"><AlertCircle size={12}/> 连接失败</span>}
                     </div>
+                    {testResult === 'fail' && testDetail && (
+                        <div className="mt-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-2 rounded-md whitespace-pre-line leading-relaxed">
+                            {testDetail}
+                        </div>
+                    )}
                 </div>
             </section>
 

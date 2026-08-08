@@ -28,10 +28,17 @@ const callWebDavProxy = async (operation: 'check' | 'upload' | 'download', confi
     }
 }
 
-export const checkWebDavConnection = async (config: WebDavConfig): Promise<boolean> => {
-    if (!config.url || !config.username || !config.password) return false;
+export const checkWebDavConnection = async (config: WebDavConfig): Promise<{ success: boolean; error?: string; detail?: string }> => {
+    if (!config.url || !config.username || !config.password) {
+        return { success: false, error: '配置不完整', detail: '请填写服务器地址、用户名和应用密码' };
+    }
     const result = await callWebDavProxy('check', config);
-    return result?.success === true;
+    if (result?.success === true) return { success: true };
+    return {
+        success: false,
+        error: result?.error || '连接失败',
+        detail: result?.detail || ''
+    };
 };
 
 export const uploadBackup = async (

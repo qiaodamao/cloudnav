@@ -3,6 +3,46 @@
 
 import { getCorsHeaders, jsonResponse } from './_kvAdapter.js';
 
+// 带超时控制的 fetch，避免目标服务器不可达时长时间挂起
+const fetchWithTimeout = async (url, options, timeoutMs = 30000) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timer);
+    return res;
+  } catch (e) {
+    clearTimeout(timer);
+    const isAbort = e && (e.name === 'AbortError' || /aborted/i.test(String(e)));
+    if (isAbort) {
+      const err = new Error(`请求超时（${timeoutMs / 1000}s），目标服务器未响应`);
+      err.isTimeout = true;
+      throw err;
+    }
+    // 网络层错误（DNS 解析失败、连接被重置等），包装成可读信息
+    const msg = String(e?.message || e);
+    const wrapped = new Error(/Failed to fetch|NetworkError|ECONNRESET|ENOTFOUND|ETIMEDOUT/.test(msg)
+      ? `无法连接到目标服务器（网络层错误：${msg}）`
+      : msg);
+    wrapped.isNetwork = true;
+    throw wrapped;
+  }
+};
+
+// 根据域名给出针对性的连接建议（用于错误提示）
+const getConnectionHint = (url) => {
+  try {
+    const host = new URL(url).hostname;
+    if (/infini-cloud\.net|teracloud\.jp/.test(host)) {
+      return 'InfiniCloud 服务器在日本，中国大陆访问可能受限。后端代理（EdgeOne/Cloudflare）通常可直连；若仍失败，请在 InfiniCloud 网页端确认已开启"外部应用连接"并使用应用密码（非登录密码）。';
+    }
+    if (/jianguoyun\.com/.test(host)) {
+      return '坚果云需使用应用密码（非登录密码），且 WebDAV 地址为 https://dav.jianguoyun.com/dav/';
+    }
+    return '';
+  } catch (e) { return ''; }
+};
+
 export async function onRequest(context) {
   const { request, env } = context;
   const corsHeaders = getCorsHeaders(env);
@@ -27,6 +67,7 @@ export async function onRequest(context) {
     if (!baseUrl.endsWith('/')) baseUrl += '/';
 
     const authHeader = `Basic ${btoa(`${config.username}:${config.password}`)}`;
+    const hint = getConnectionHint(baseUrl);
 
     // 坚果云根目录 /dav/ 不允许直接写文件，会返回 404 ObjectNotFound
     // 检测到根目录配置时，自动使用 cloudnav 子目录存放备份
@@ -61,10 +102,10 @@ export async function onRequest(context) {
     } else if (operation === 'upload') {
       // 确保存储目录存在（MKCOL 创建目录，已存在返回 405，忽略）
       try {
-        await fetch(storageBaseUrl, {
+        await fetchWithTimeout(storageBaseUrl, {
           method: 'MKCOL',
           headers: { 'Authorization': authHeader, 'User-Agent': 'CloudNav/1.0' }
-        });
+        }, 15000);
       } catch (e) {
         // 忽略 MKCOL 错误，继续尝试 PUT
       }
@@ -74,12 +115,24 @@ export async function onRequest(context) {
       const targetFilename = customFilename || filename;
       const targetFileUrl = storageBaseUrl + targetFilename;
 
-      // 1. 上传 JSON 备份
-      const jsonPutRes = await fetch(targetFileUrl, {
-        method: 'PUT',
-        headers: { 'Authorization': authHeader, 'User-Agent': 'CloudNav/1.0', 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      // 1. 上传 JSON 备份（上传大文件给足超时时间）
+      let jsonPutRes;
+      try {
+        jsonPutRes = await fetchWithTimeout(targetFileUrl, {
+          method: 'PUT',
+          headers: { 'Authorization': authHeader, 'User-Agent': 'CloudNav/1.0', 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }, 60000);
+      } catch (e) {
+        return jsonResponse({
+          success: false,
+          error: e.isTimeout ? '上传超时' : '上传失败',
+          detail: e.message + (hint ? `\n建议：${hint}` : ''),
+          targetUrl: targetFileUrl,
+          htmlUploaded: false,
+          htmlError: ''
+        }, 200, corsHeaders);
+      }
       const jsonSuccess = jsonPutRes.ok || jsonPutRes.status === 207;
 
       // 2. 上传 HTML 书签文件（仅主备份文件，且提供了 bookmarkHtml 时才上传）
@@ -87,7 +140,7 @@ export async function onRequest(context) {
       let htmlErr = '';
       if (!customFilename && payload && payload.bookmarkHtml) {
         try {
-          const htmlRes = await fetch(htmlFileUrl, {
+          const htmlRes = await fetchWithTimeout(htmlFileUrl, {
             method: 'PUT',
             headers: {
               'Authorization': authHeader,
@@ -95,12 +148,12 @@ export async function onRequest(context) {
               'Content-Type': 'text/html; charset=UTF-8'
             },
             body: payload.bookmarkHtml
-          });
+          }, 60000);
           htmlSuccess = htmlRes.ok || htmlRes.status === 207;
           if (!htmlSuccess) htmlErr = `HTML ${htmlRes.status}`;
         } catch (e) {
           htmlSuccess = false;
-          htmlErr = String(e);
+          htmlErr = e.isTimeout ? 'HTML 上传超时' : String(e.message || e);
         }
       }
 
@@ -110,7 +163,7 @@ export async function onRequest(context) {
           success: false,
           status: jsonPutRes.status,
           error: `WebDAV returned ${jsonPutRes.status}`,
-          detail: errText.slice(0, 500),
+          detail: errText.slice(0, 500) + (hint ? `\n建议：${hint}` : ''),
           targetUrl: targetFileUrl,
           htmlUploaded: htmlSuccess,
           htmlError: htmlErr
@@ -129,7 +182,17 @@ export async function onRequest(context) {
       return jsonResponse({ error: 'Invalid operation' }, 400, corsHeaders);
     }
 
-    const response = await fetch(fetchUrl, { method, headers, body: requestBody });
+    let response;
+    try {
+      response = await fetchWithTimeout(fetchUrl, { method, headers, body: requestBody }, 30000);
+    } catch (e) {
+      return jsonResponse({
+        success: false,
+        error: e.isTimeout ? '连接超时' : '连接失败',
+        detail: e.message + (hint ? `\n建议：${hint}` : ''),
+        targetUrl: fetchUrl
+      }, 200, corsHeaders);
+    }
 
     if (operation === 'download') {
       if (!response.ok) {
@@ -137,7 +200,7 @@ export async function onRequest(context) {
           return jsonResponse({ error: 'Backup file not found' }, 404, corsHeaders);
         }
         const errText = await response.text().catch(() => '');
-        return jsonResponse({ error: `WebDAV Error: ${response.status}`, detail: errText.slice(0, 500) }, response.status, corsHeaders);
+        return jsonResponse({ error: `WebDAV Error: ${response.status}`, detail: errText.slice(0, 500) + (hint ? `\n建议：${hint}` : '') }, response.status, corsHeaders);
       }
       const data = await response.json();
       return jsonResponse(data, 200, corsHeaders);
@@ -151,7 +214,7 @@ export async function onRequest(context) {
         success: false,
         status: response.status,
         error: `WebDAV returned ${response.status}`,
-        detail: errText.slice(0, 500),
+        detail: errText.slice(0, 500) + (hint ? `\n建议：${hint}` : ''),
         targetUrl: operation === 'upload' ? fileUrl : baseUrl
       }, 200, corsHeaders);
     }
