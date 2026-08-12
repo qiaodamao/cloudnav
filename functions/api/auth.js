@@ -41,15 +41,22 @@ export async function onRequest(context) {
     const token = generateSecureToken();
 
     // 读取密码过期配置
+    // 先读分片 config:website（新存储方式），没有再 fallback 到旧 config（整体存储）
     let expirationTtl = 24 * 60 * 60; // 默认 1 天
     try {
-      const configStr = await kv.get('config');
-      if (configStr) {
-        const config = JSON.parse(configStr);
-        const expiry = config.website?.passwordExpiry;
-        if (expiry) {
-          expirationTtl = calcExpiryTtl(expiry);
+      let websiteConfig = null;
+      const sectionStr = await kv.get('config:website');
+      if (sectionStr) {
+        websiteConfig = JSON.parse(sectionStr);
+      } else {
+        const configStr = await kv.get('config');
+        if (configStr) {
+          websiteConfig = JSON.parse(configStr).website;
         }
+      }
+      const expiry = websiteConfig?.passwordExpiry;
+      if (expiry) {
+        expirationTtl = calcExpiryTtl(expiry);
       }
     } catch (e) {
       console.warn('Failed to read expiry config:', e);

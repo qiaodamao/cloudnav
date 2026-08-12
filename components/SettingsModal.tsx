@@ -3,6 +3,7 @@ import { X, Save, Settings, Clock, LayoutGrid, Cloud, BookOpen, Upload, CloudCog
 import { AIConfig, PasswordExpiryConfig, WeatherConfig, WeatherProvider, SearchConfig, IconConfig } from '../types';
 import { toast } from './Toast';
 import { SEARCH_ENGINES, DEFAULT_ICON_CONFIG } from '../src/constants';
+import { useAuthContext } from '../src/contexts/AuthContext';
 
 interface SettingsData {
   ai: AIConfig;
@@ -56,6 +57,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [settings, setSettings] = useState<SettingsData>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const { markAuthExpired } = useAuthContext();
   const [migrating, setMigrating] = useState(false);
 
   useEffect(() => {
@@ -128,9 +130,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             headers: { 'Content-Type': 'application/json', 'x-auth-password': authToken },
             body: JSON.stringify({ saveConfig: key, config }),
           });
+          // 检测到 401 → token 过期，触发登录过期处理
+          if (res.status === 401) {
+            markAuthExpired();
+            return { key, ok: false, error: '登录已过期', expired: true };
+          }
           return { key, ok: res.ok, error: res.ok ? null : ((await res.json().catch(() => ({}))).error || res.statusText) };
         })
       );
+
+      // 如果是 token 过期导致的失败，不显示"部分设置保存失败"，由 markAuthExpired 统一处理
+      const hasExpired = results.some(r => (r as any).expired);
+      if (hasExpired) {
+        toast.error('管理员登录已过期，请重新登录后再保存设置');
+        return;
+      }
 
       const errors = results.filter(r => !r.ok).map(r => `${r.key}: ${r.error}`);
       if (errors.length > 0) {
