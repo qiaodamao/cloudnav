@@ -5,9 +5,13 @@ import { Category, LinkItem, WebDavConfig, SearchConfig, AIConfig } from "../typ
 // This solves the CORS issue by delegating the request to the backend
 const callWebDavProxy = async (operation: 'check' | 'upload' | 'download', config: WebDavConfig, payload?: any) => {
     try {
+        // WebDAV 代理需登录鉴权（防 SSRF/开放代理），携带管理员 token
+        const token = localStorage.getItem('cloudnav_auth_token') || localStorage.getItem('authToken') || '';
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) headers['x-auth-password'] = token;
         const response = await fetch('/api/webdav', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({
                 operation,
                 config,
