@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useCallback, useEffect, startTransition } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import {
   AppConfig, AIConfig, WebsiteConfig, WebDavConfig,
   SearchConfig, IconConfig, WeatherConfig,
@@ -158,8 +158,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setViewMode = useCallback((mode: 'compact' | 'detailed') => {
-    // startTransition 让重渲染降为过渡态，不阻塞 paint，切换更跟手
-    startTransition(() => dispatch({ type: 'SET_VIEW_MODE', payload: mode }));
+    dispatch({ type: 'SET_VIEW_MODE', payload: mode });
     localStorage.setItem('cloudnav_view_mode_preference', mode);
     configManager.updateViewMode(mode);
   }, []);
@@ -173,8 +172,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     // 切换瞬间临时禁用所有 transition，避免颜色过渡造成"延迟感"
     const docEl = document.documentElement;
     docEl.classList.add('theme-transitioning');
-    // startTransition 让重渲染不阻塞 paint；dark class 在下方同步添加，视觉即时
-    startTransition(() => dispatch({ type: 'SET_DARK_MODE', payload: dark }));
+    dispatch({ type: 'SET_DARK_MODE', payload: dark });
     localStorage.setItem('cloudnav_theme_preference', dark ? 'dark' : 'light');
     if (dark) {
       docEl.classList.add('dark');
