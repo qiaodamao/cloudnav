@@ -6,7 +6,7 @@ import { getKV, getCorsHeaders, verifyAuth, jsonResponse } from './_kvAdapter.js
 
 export async function onRequest(context) {
   const { request, env } = context;
-  const corsHeaders = getCorsHeaders(env);
+  const corsHeaders = getCorsHeaders(env, request);
 
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -97,6 +97,19 @@ export async function onRequest(context) {
     }
 
     if (fetchUrl) {
+      // SSRF 防护：仅允许 http/https，拒绝内网/本地地址
+      try {
+        const parsed = new URL(fetchUrl);
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+          return jsonResponse({ error: '仅支持 http/https 协议' }, 400, corsHeaders);
+        }
+        const host = parsed.hostname.toLowerCase();
+        if (host === 'localhost' || /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|0\.0\.0\.0)/.test(host) || host.startsWith('[::')) {
+          return jsonResponse({ error: '不允许的目标地址' }, 400, corsHeaders);
+        }
+      } catch (e) {
+        return jsonResponse({ error: '无效的 URL' }, 400, corsHeaders);
+      }
       try {
         const fetchRes = await fetch(fetchUrl, {
           headers: {

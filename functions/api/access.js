@@ -10,7 +10,7 @@ const ACCESS_TOKEN_TTL = 7 * 24 * 60 * 60; // 7 天
 
 export async function onRequest(context) {
   const { request, env } = context;
-  const corsHeaders = getCorsHeaders(env);
+  const corsHeaders = getCorsHeaders(env, request);
 
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -40,13 +40,30 @@ export async function onRequest(context) {
 
       const { password } = await request.json();
 
+      // 登录失败限流：同一 IP 5 次失败后锁定 5 分钟
+      // 优先 EdgeOne 注入的 EO-Connecting-IP（不可伪造），回退 X-Real-IP / X-Forwarded-For
+      const ip = request.headers.get('EO-Connecting-IP')
+        || request.headers.get('X-Real-IP')
+        || (request.headers.get('x-forwarded-for') || '').split(',')[0].trim()
+        || 'unknown';
+      const failKey = `accessfail:${ip}`;
+      let kv;
+      try { kv = getKV(env); } catch (e) { kv = null; }
+      let failCount = 0;
+      try { failCount = parseInt(await kv?.get(failKey) || '0', 10); } catch (e) {}
+      if (failCount >= 5) {
+        return jsonResponse({ error: '尝试过于频繁，请稍后再试' }, 429, corsHeaders);
+      }
+
       if (password !== env.ACCESS_PASSWORD) {
+        try { if (kv) await kv.put(failKey, String(failCount + 1), { expirationTtl: 300 }); } catch (e) {}
         return jsonResponse({ error: '访问密码错误' }, 401, corsHeaders);
       }
 
+      try { if (kv) await kv.delete(failKey); } catch (e) {}
+
       // 生成访问令牌并存入 KV
       const token = generateSecureToken();
-      const kv = getKV(env);
       await kv.put(`access_token:${token}`, 'valid', { expirationTtl: ACCESS_TOKEN_TTL });
 
       // 设置 HttpOnly cookie，7 天过期

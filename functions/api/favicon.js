@@ -45,7 +45,7 @@ function detectMimeType(arrayBuffer) {
 
 export async function onRequest(context) {
   const { request, env } = context;
-  const corsHeaders = getCorsHeaders(env);
+  const corsHeaders = getCorsHeaders(env, request);
   const url = new URL(request.url);
 
   // 防盗链保护 (防站外盗用)

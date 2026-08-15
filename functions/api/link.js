@@ -5,7 +5,7 @@ import { getKV, getCorsHeaders, verifyAuth, jsonResponse } from './_kvAdapter.js
 
 export async function onRequest(context) {
   const { request, env } = context;
-  const corsHeaders = getCorsHeaders(env);
+  const corsHeaders = getCorsHeaders(env, request);
 
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });

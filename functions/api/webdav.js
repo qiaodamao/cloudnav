@@ -1,7 +1,7 @@
 // WebDAV 代理接口
 // 支持 EdgeOne Pages / Cloudflare Workers
 
-import { getCorsHeaders, jsonResponse } from './_kvAdapter.js';
+import { getCorsHeaders, jsonResponse, verifyAuth, getKV } from './_kvAdapter.js';
 
 // 带超时控制的 fetch，避免目标服务器不可达时长时间挂起
 const fetchWithTimeout = async (url, options, timeoutMs = 30000) => {
@@ -63,7 +63,7 @@ const cleanErrorDetail = (status, rawDetail, hint) => {
 
 export async function onRequest(context) {
   const { request, env } = context;
-  const corsHeaders = getCorsHeaders(env);
+  const corsHeaders = getCorsHeaders(env, request);
 
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -76,6 +76,15 @@ export async function onRequest(context) {
   try {
     const body = await request.json();
     const { operation, config, payload } = body;
+
+    // 认证检查（WebDAV 代理涉及用户凭据，必须登录后调用，防止被用作开放代理/SSRF）
+    const providedPassword = request.headers.get('x-auth-password');
+    let kv;
+    try { kv = getKV(env); } catch (e) { kv = null; }
+    const isAuthenticated = await verifyAuth({ providedPassword, serverPassword: env.PASSWORD, kv });
+    if (!isAuthenticated) {
+      return jsonResponse({ error: '需要登录' }, 401, corsHeaders);
+    }
 
     if (!config || !config.url || !config.username || !config.password) {
       return jsonResponse({ error: 'Missing configuration' }, 400, corsHeaders);

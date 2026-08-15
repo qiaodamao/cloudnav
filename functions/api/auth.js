@@ -5,7 +5,7 @@ import { getKV, getCorsHeaders, jsonResponse } from './_kvAdapter.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
-  const corsHeaders = getCorsHeaders(env);
+  const corsHeaders = getCorsHeaders(env, request);
 
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -23,9 +23,26 @@ export async function onRequest(context) {
       return jsonResponse({ error: '服务器未配置管理员密码' }, 500, corsHeaders);
     }
 
+    // 登录失败限流：同一 IP 5 次失败后锁定 5 分钟
+    // 优先 EdgeOne 注入的 EO-Connecting-IP（不可伪造），回退 X-Real-IP / X-Forwarded-For
+    const ip = request.headers.get('EO-Connecting-IP')
+      || request.headers.get('X-Real-IP')
+      || (request.headers.get('x-forwarded-for') || '').split(',')[0].trim()
+      || 'unknown';
+    const failKey = `authfail:${ip}`;
+    let failCount = 0;
+    try { failCount = parseInt(await kv.get(failKey) || '0', 10); } catch (e) {}
+    if (failCount >= 5) {
+      return jsonResponse({ error: '尝试过于频繁，请稍后再试' }, 429, corsHeaders);
+    }
+
     if (password !== env.PASSWORD) {
+      try { await kv.put(failKey, String(failCount + 1), { expirationTtl: 300 }); } catch (e) {}
       return jsonResponse({ error: '密码错误' }, 401, corsHeaders);
     }
+
+    // 成功：清除失败计数
+    try { await kv.delete(failKey); } catch (e) {}
 
     // 清理旧 Token：读取上次生成的 token 并删除
     try {

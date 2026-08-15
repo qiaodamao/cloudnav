@@ -5,6 +5,7 @@ import { useLinksContext } from '../contexts/LinksContext';
 import { useCategoriesContext } from '../contexts/CategoriesContext';
 import { useConfigContext } from '../contexts/ConfigContext';
 import { configManager } from '../utils/configManager';
+import { useAuthContext } from '../contexts/AuthContext';
 
 /**
  * 数据同步 Hook：管理 localStorage ↔ KV 的加载和同步
@@ -13,6 +14,7 @@ export function useDataSync() {
   const { links = [], initLinks, setLinksAndSync } = useLinksContext();
   const { categories = [], initCategories } = useCategoriesContext();
   const { initConfig } = useConfigContext();
+  const { authToken } = useAuthContext();
   const initialized = useRef(false);
 
   // 从 localStorage 加载
@@ -51,9 +53,12 @@ export function useDataSync() {
   // 从 KV 加载链接和分类
   const loadFromCloud = useCallback(async (): Promise<{ links: LinkItem[]; categories: Category[] } | null> => {
     try {
-      // cache: 'no-store' 避免浏览器缓存导致读到旧数据
-      const res = await fetch(`${API_ENDPOINTS.STORAGE}?getConfig=true&readOnly=true&_=${Date.now()}`, {
+      // 登录用户带 token 可加载完整数据（含分类密码供管理），访客自动脱敏
+      const headers: Record<string, string> = {};
+      if (authToken) headers['x-auth-password'] = authToken;
+      const res = await fetch(`${API_ENDPOINTS.STORAGE}?getConfig=true&_=${Date.now()}`, {
         cache: 'no-store',
+        headers,
       });
       if (!res.ok) return null;
       const data = await res.json();
@@ -65,7 +70,7 @@ export function useDataSync() {
       console.error('Load from cloud failed:', e);
       return null;
     }
-  }, []);
+  }, [authToken]);
 
   // 从 KV 加载各个配置
   const loadConfigsFromCloud = useCallback(async () => {
@@ -74,7 +79,9 @@ export function useDataSync() {
 
     await Promise.all(configKeys.map(async (key) => {
       try {
-        const res = await fetch(`${API_ENDPOINTS.STORAGE}?getConfig=${key}`);
+        const headers: Record<string, string> = {};
+        if (authToken) headers['x-auth-password'] = authToken;
+        const res = await fetch(`${API_ENDPOINTS.STORAGE}?getConfig=${key}`, { headers });
         if (res.ok) {
           const data = await res.json();
           if (data && Object.keys(data).length > 0) {
@@ -95,7 +102,7 @@ export function useDataSync() {
     if (Object.keys(configMap).length > 0) {
       initConfig(configMap);
     }
-  }, [initConfig]);
+  }, [initConfig, authToken]);
 
   // 初始化数据
   const initData = useCallback(async () => {

@@ -100,7 +100,7 @@ async function saveCategoryLinks(kv, links, categories) {
 
 export async function onRequest(context) {
   const { request, env } = context;
-  const corsHeaders = getCorsHeaders(env);
+  const corsHeaders = getCorsHeaders(env, request);
   const url = new URL(request.url);
 
   if (request.method === 'OPTIONS') {
@@ -130,6 +130,15 @@ export async function onRequest(context) {
 
       // 获取子配置（优先读独立 key，fallback 到旧 config 的子字段）
       if (CONFIG_SECTIONS.includes(getConfig)) {
+        // 敏感配置段（含明文密钥）需认证，防止未授权读取
+        const SENSITIVE_SECTIONS = ['webdav'];
+        if (SENSITIVE_SECTIONS.includes(getConfig)) {
+          const providedPassword = request.headers.get('x-auth-password');
+          const isAuthenticated = await verifyAuth({ providedPassword, serverPassword: env.PASSWORD, kv });
+          if (!isAuthenticated) {
+            return jsonResponse({ error: '该配置需要登录' }, 401, corsHeaders);
+          }
+        }
         const sectionVal = await readConfigSection(kv, getConfig);
         const defaults = {
           website: { passwordExpiry: { value: 1, unit: 'week' } },
@@ -147,12 +156,14 @@ export async function onRequest(context) {
         return jsonResponse({ icon: cachedIcon || null, cached: !!cachedIcon }, 200, corsHeaders);
       }
 
-      // 获取分类（密码脱敏）
+      // 获取分类（未认证脱敏 password，认证后返回完整，用于管理编辑）
       if (getConfig === 'categories') {
         const data = await kv.get(STORAGE_KEYS.CATEGORIES_CONFIG_KEY);
         const categories = data ? JSON.parse(data) : [];
-        const sanitized = categories.map(({ password, ...rest }) => rest);
-        return jsonResponse(sanitized, 200, corsHeaders);
+        const providedPassword = request.headers.get('x-auth-password');
+        const isAuthenticated = await verifyAuth({ providedPassword, serverPassword: env.PASSWORD, kv });
+        const result = isAuthenticated ? categories : categories.map(({ password, ...rest }) => rest);
+        return jsonResponse(result, 200, corsHeaders);
       }
 
       // 获取链接
@@ -171,8 +182,13 @@ export async function onRequest(context) {
         return jsonResponse(links, 200, corsHeaders);
       }
 
-      // 按 Key 读取
+      // 按 Key 读取（需认证，防止泄露 last_token 等敏感 KV）
       if (key) {
+        const providedPassword = request.headers.get('x-auth-password');
+        const isAuthenticated = await verifyAuth({ providedPassword, serverPassword: env.PASSWORD, kv });
+        if (!isAuthenticated) {
+          return jsonResponse({ error: '该操作需要登录' }, 401, corsHeaders);
+        }
         if (key === STORAGE_KEYS.CONFIG_KEY) {
           const merged = await mergeAllConfigSections(kv);
           return jsonResponse({ key, value: JSON.stringify(merged) }, 200, corsHeaders);
@@ -181,15 +197,16 @@ export async function onRequest(context) {
         return jsonResponse({ key, value }, 200, corsHeaders);
       }
 
-      // 获取全部数据
+      // 获取全部数据（未认证脱敏 password，认证后返回完整）
       if (getConfig === 'true') {
         const categoriesData = await kv.get(STORAGE_KEYS.CATEGORIES_CONFIG_KEY);
         const categories = categoriesData ? JSON.parse(categoriesData) : [];
 
-        // 只读模式下分类密码脱敏
-        const sanitizedCategories = readOnly
-          ? categories.map(({ password, ...rest }) => rest)
-          : categories;
+        const providedPassword = request.headers.get('x-auth-password');
+        const isAuthenticated = await verifyAuth({ providedPassword, serverPassword: env.PASSWORD, kv });
+        const sanitizedCategories = isAuthenticated
+          ? categories
+          : categories.map(({ password, ...rest }) => rest);
 
         // 读取所有分类链接
         const links = await readAllCategoryLinks(kv);
@@ -206,18 +223,21 @@ export async function onRequest(context) {
     // ==================== POST ====================
     if (request.method === 'POST') {
       const body = await request.json();
-      const readOnlyOperations = ['favicon'];
 
-      // 无需认证的操作
-      if (readOnlyOperations.includes(body.operation) || body.saveConfig === 'favicon') {
-        if (body.saveConfig === 'favicon') {
-          const { domain, icon } = body;
-          if (!domain || !icon) {
-            return jsonResponse({ error: 'Domain and icon are required' }, 400, corsHeaders);
-          }
-          await kv.put(`favicon:${domain}`, icon, { expirationTtl: 30 * 24 * 60 * 60 });
-          return jsonResponse({ success: true }, 200, corsHeaders);
+      // 分类密码校验（访客可调，不需管理员认证；用于解锁受密码保护的分类）
+      // 避免将分类密码明文下发到前端
+      if (body.verifyCategoryPassword) {
+        const { categoryId, password } = body;
+        if (!categoryId) {
+          return jsonResponse({ error: 'categoryId is required' }, 400, corsHeaders);
         }
+        const catsStr = await kv.get(STORAGE_KEYS.CATEGORIES_CONFIG_KEY);
+        const categories = catsStr ? JSON.parse(catsStr) : [];
+        const cat = categories.find((c) => c.id === categoryId);
+        if (!cat || !cat.password) {
+          return jsonResponse({ valid: false }, 200, corsHeaders);
+        }
+        return jsonResponse({ valid: cat.password === password }, 200, corsHeaders);
       }
 
       // 认证检查
@@ -230,6 +250,16 @@ export async function onRequest(context) {
 
       if (!isAuthenticated) {
         return jsonResponse({ error: '管理操作需要密码验证' }, 401, corsHeaders);
+      }
+
+      // favicon 缓存写入（需认证，防止未授权污染缓存）
+      if (body.saveConfig === 'favicon') {
+        const { domain, icon } = body;
+        if (!domain || !icon) {
+          return jsonResponse({ error: 'Domain and icon are required' }, 400, corsHeaders);
+        }
+        await kv.put(`favicon:${domain}`, icon, { expirationTtl: 30 * 24 * 60 * 60 });
+        return jsonResponse({ success: true }, 200, corsHeaders);
       }
 
       // 仅验证密码
@@ -294,6 +324,6 @@ export async function onRequest(context) {
 
   } catch (err) {
     console.error('Storage API error:', err);
-    return jsonResponse({ error: 'Failed to fetch data', details: err.message }, 500, corsHeaders);
+    return jsonResponse({ error: '服务器内部错误' }, 500, corsHeaders);
   }
 }

@@ -12,18 +12,32 @@ interface CategoryAuthModalProps {
 const CategoryAuthModal: React.FC<CategoryAuthModalProps> = ({ isOpen, onClose, category, onUnlock }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   if (!isOpen || !category) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === category.password) {
+    setSubmitting(true);
+    setError('');
+    try {
+      const res = await fetch('/api/storage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ verifyCategoryPassword: true, categoryId: category.id, password }),
+      });
+      const data = await res.json();
+      if (data.valid) {
         onUnlock(category.id);
         setPassword('');
-        setError('');
         onClose();
-    } else {
+      } else {
         setError('密码错误');
+      }
+    } catch (err) {
+      setError('验证失败，请重试');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -64,7 +78,7 @@ const CategoryAuthModal: React.FC<CategoryAuthModalProps> = ({ isOpen, onClose, 
 
           <button
             type="submit"
-            disabled={!password}
+            disabled={!password || submitting}
             className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-xl transition-colors shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2"
           >
             解锁 <ArrowRight size={18} />

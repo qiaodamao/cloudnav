@@ -1,9 +1,9 @@
 // Vercel WebDAV 代理接口
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getCorsHeaders } from './_kvHelper.js';
+import { getCorsHeaders, verifyAuth } from './_kvHelper.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const corsHeaders = getCorsHeaders();
+  const corsHeaders = getCorsHeaders(req);
   res.setHeader('Access-Control-Allow-Origin', corsHeaders['Access-Control-Allow-Origin']);
   res.setHeader('Access-Control-Allow-Methods', corsHeaders['Access-Control-Allow-Methods']);
   res.setHeader('Access-Control-Allow-Headers', corsHeaders['Access-Control-Allow-Headers']);
@@ -18,6 +18,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { operation, config, payload } = req.body;
+
+    // 认证检查（WebDAV 代理涉及用户凭据，必须登录后调用）
+    const providedPassword = req.headers['x-auth-password'] as string;
+    const isAuthenticated = await verifyAuth(providedPassword);
+    if (!isAuthenticated) {
+      return res.status(401).json({ error: '需要登录' });
+    }
 
     if (!config || !config.url || !config.username || !config.password) {
       return res.status(400).json({ error: 'Missing configuration' });

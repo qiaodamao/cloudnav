@@ -3,7 +3,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getKV, getCorsHeaders, generateSecureToken, calcExpiryTtl } from './_kvHelper.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const corsHeaders = getCorsHeaders();
+  const corsHeaders = getCorsHeaders(req);
 
   // CORS preflight
   if (req.method === 'OPTIONS') {
@@ -23,9 +23,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: '服务器未配置管理员密码' });
     }
 
+    // 登录失败限流：同 IP 5 次失败锁定 5 分钟，防止暴力破解
+    const ip = (req.headers['x-forwarded-for'] as string || '').split(',')[0].trim() || 'unknown';
+    const failKey = `authfail:${ip}`;
+    let failCount = 0;
+    try { failCount = parseInt((await kv.get(failKey) as string) || '0', 10); } catch (e) {}
+    if (failCount >= 5) {
+      return res.status(429).json({ error: '尝试过于频繁，请稍后再试' });
+    }
+
     if (password !== process.env.PASSWORD) {
+      try { await kv.set(failKey, String(failCount + 1), { ex: 300 }); } catch (e) {}
       return res.status(401).json({ error: '密码错误' });
     }
+
+    // 成功：清除失败计数
+    try { await kv.del(failKey); } catch (e) {}
 
     // 清理旧 Token
     try {
@@ -66,7 +79,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   } catch (err: any) {
     console.error('Auth API error:', err);
-    return res.status(500).json({ error: '认证请求失败', details: err.message });
+    return res.status(500).json({ error: '认证请求失败' });
   }
 }
 

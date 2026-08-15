@@ -3,7 +3,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getKV, getCorsHeaders, verifyAuth } from './_kvHelper.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const corsHeaders = getCorsHeaders();
+  const corsHeaders = getCorsHeaders(req);
   res.setHeader('Access-Control-Allow-Origin', corsHeaders['Access-Control-Allow-Origin']);
   res.setHeader('Access-Control-Allow-Methods', corsHeaders['Access-Control-Allow-Methods']);
   res.setHeader('Access-Control-Allow-Headers', corsHeaders['Access-Control-Allow-Headers']);

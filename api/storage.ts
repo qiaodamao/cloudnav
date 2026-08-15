@@ -99,7 +99,7 @@ async function saveCategoryLinks(kv: any, links: any[]) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const corsHeaders = getCorsHeaders();
+  const corsHeaders = getCorsHeaders(req);
   res.setHeader('Access-Control-Allow-Origin', corsHeaders['Access-Control-Allow-Origin']);
   res.setHeader('Access-Control-Allow-Methods', corsHeaders['Access-Control-Allow-Methods']);
   res.setHeader('Access-Control-Allow-Headers', corsHeaders['Access-Control-Allow-Headers']);
@@ -125,6 +125,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       if (CONFIG_SECTIONS.includes(getConfig as string)) {
+        // 敏感配置段（含明文密钥）需认证，防止未授权读取
+        const SENSITIVE_SECTIONS = ['webdav'];
+        if (SENSITIVE_SECTIONS.includes(getConfig as string)) {
+          const providedPassword = req.headers['x-auth-password'] as string;
+          const isAuthenticated = await verifyAuth(providedPassword);
+          if (!isAuthenticated) {
+            return res.status(401).json({ error: '该配置需要登录' });
+          }
+        }
         const sectionVal = await readConfigSection(kv, getConfig as string);
         const defaults: Record<string, any> = {
           website: { passwordExpiry: { value: 1, unit: 'week' } },
@@ -142,8 +151,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (getConfig === 'categories') {
         const data = await kv.get(STORAGE_KEYS.CATEGORIES_CONFIG_KEY);
         const categories = data ? (typeof data === 'string' ? JSON.parse(data) : data) : [];
-        const sanitized = categories.map(({ password, ...rest }: any) => rest);
-        return res.status(200).json(sanitized);
+        const providedPassword = req.headers['x-auth-password'] as string;
+        const isAuthenticated = await verifyAuth(providedPassword);
+        const result = isAuthenticated ? categories : categories.map(({ password, ...rest }: any) => rest);
+        return res.status(200).json(result);
       }
 
       if (getConfig === 'links') {
@@ -157,6 +168,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       if (key) {
+        const providedPassword = req.headers['x-auth-password'] as string;
+        const isAuthenticated = await verifyAuth(providedPassword);
+        if (!isAuthenticated) {
+          return res.status(401).json({ error: '该操作需要登录' });
+        }
         if (key === STORAGE_KEYS.CONFIG_KEY) {
           const merged = await mergeAllConfigSections(kv);
           return res.status(200).json({ key, value: JSON.stringify(merged) });
@@ -168,10 +184,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (getConfig === 'true') {
         const categoriesData = await kv.get(STORAGE_KEYS.CATEGORIES_CONFIG_KEY);
         const categories = categoriesData ? (typeof categoriesData === 'string' ? JSON.parse(categoriesData) : categoriesData) : [];
-        const sanitizedCategories = readOnly
-          ? categories.map(({ password, ...rest }: any) => rest)
-          : categories;
-        
+        const providedPassword = req.headers['x-auth-password'] as string;
+        const isAuthenticated = await verifyAuth(providedPassword);
+        const sanitizedCategories = isAuthenticated
+          ? categories
+          : categories.map(({ password, ...rest }: any) => rest);
+
         const links = await readAllCategoryLinks(kv);
 
         return res.status(200).json({
@@ -187,11 +205,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'POST') {
       const body = req.body;
 
-      if (body.saveConfig === 'favicon') {
-        const { domain, icon } = body;
-        if (!domain || !icon) return res.status(400).json({ error: 'Domain and icon required' });
-        await kv.set(`favicon:${domain}`, icon, { ex: 30 * 24 * 60 * 60 });
-        return res.status(200).json({ success: true });
+      // 分类密码校验（访客可调，不需管理员认证；避免密码明文下发前端）
+      if (body.verifyCategoryPassword) {
+        const { categoryId, password } = body;
+        if (!categoryId) return res.status(400).json({ error: 'categoryId is required' });
+        const catsStr = await kv.get(STORAGE_KEYS.CATEGORIES_CONFIG_KEY);
+        const categories = catsStr ? (typeof catsStr === 'string' ? JSON.parse(catsStr) : catsStr) : [];
+        const cat = categories.find((c: any) => c.id === categoryId);
+        if (!cat || !cat.password) return res.status(200).json({ valid: false });
+        return res.status(200).json({ valid: cat.password === password });
       }
 
       const providedPassword = req.headers['x-auth-password'] as string;
@@ -199,6 +221,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (!isAuthenticated) {
         return res.status(401).json({ error: '管理操作需要密码验证' });
+      }
+
+      // favicon 缓存写入（需认证，防止未授权污染缓存）
+      if (body.saveConfig === 'favicon') {
+        const { domain, icon } = body;
+        if (!domain || !icon) return res.status(400).json({ error: 'Domain and icon required' });
+        await kv.set(`favicon:${domain}`, icon, { ex: 30 * 24 * 60 * 60 });
+        return res.status(200).json({ success: true });
       }
 
       if (body.authOnly) {
@@ -249,7 +279,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   } catch (err: any) {
     console.error('Storage API error:', err);
-    return res.status(500).json({ error: 'Failed to fetch data', details: err.message });
+    return res.status(500).json({ error: '服务器内部错误' });
   }
 }
 

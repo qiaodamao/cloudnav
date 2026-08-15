@@ -38,7 +38,7 @@ export async function onRequest(context) {
   }
 
   // 未登录：API 返回 401，前端据此显示访问密码弹窗
-  const corsHeaders = getCorsHeaders(env);
+  const corsHeaders = getCorsHeaders(env, request);
   return new Response(
     JSON.stringify({ error: '需要访问密码', requiresAccess: true }),
     { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }

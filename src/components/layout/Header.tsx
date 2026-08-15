@@ -7,6 +7,26 @@ import WeatherDisplay from '../../../components/WeatherDisplay';
 import { useState, useRef, useEffect } from 'react';
 import { SEARCH_ENGINES, getSearchEngineLogo } from '../../constants';
 
+// 净化 SVG 字符串：移除 script 与事件处理器/危险协议，防止存储型 XSS
+function sanitizeSvg(svg: string): string {
+  try {
+    const doc = new DOMParser().parseFromString(svg, 'image/svg+xml');
+    doc.querySelectorAll('script').forEach((el) => el.remove());
+    doc.querySelectorAll('*').forEach((el) => {
+      Array.from(el.attributes).forEach((attr) => {
+        const name = attr.name.toLowerCase();
+        if (name.startsWith('on')) el.removeAttribute(attr.name);
+        if ((name === 'href' || name === 'xlink:href') && /^\s*javascript:/i.test(attr.value)) {
+          el.removeAttribute(attr.name);
+        }
+      });
+    });
+    return doc.documentElement.outerHTML;
+  } catch {
+    return '';
+  }
+}
+
 interface HeaderProps {
   searchQuery: string;
   onSearchChange: (q: string) => void;
@@ -108,7 +128,7 @@ function RenderEngineLogo({
       return (
         <div
           className={combinedClass}
-          dangerouslySetInnerHTML={{ __html: customIcon }}
+          dangerouslySetInnerHTML={{ __html: sanitizeSvg(customIcon) }}
           style={{ width: '16px', height: '16px' }}
         />
       );

@@ -5,13 +5,20 @@ export function getKV() {
   return kv;
 }
 
-export function getCorsHeaders() {
-  const origin = process.env.ALLOWED_ORIGIN || '*';
+export function getCorsHeaders(request?: any) {
+  const configured = process.env.ALLOWED_ORIGIN;
+  let origin = configured;
+  if (!origin) {
+    // 未配置 ALLOWED_ORIGIN 时反射请求 Origin，避免通配 * 导致任意站点可读取响应
+    const reqOrigin = request?.headers?.origin || request?.headers?.Origin;
+    origin = reqOrigin || 'null';
+  }
   return {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, x-auth-password',
     'Access-Control-Max-Age': '86400',
+    'Vary': 'Origin',
   };
 }
 
