@@ -2,7 +2,8 @@
 .link-card {
   position: relative;
   overflow: hidden;
-  transition: all 0.25s ease-out;
+  /* 只过渡 hover 用到的属性，避免 viewMode 切换时尺寸/内容变化产生延迟感 */
+  transition: box-shadow 0.25s ease-out, border-color 0.25s ease-out;
   --icon-color: #3b82f6;
   --icon-color-rgb: 59, 130, 246;
   border-color: transparent !important;
