@@ -61,6 +61,70 @@ const cleanErrorDetail = (status, rawDetail, hint) => {
   return hint ? `建议：${hint}` : (rawDetail || '').slice(0, 500);
 };
 
+// 北京时间日期串（YYYYMMDD），用于备份文件名
+const getBeijingDateStr = () => {
+  return new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10).replace(/-/g, '');
+};
+
+// 列出备份目录下的文件名（PROPFIND Depth:1），失败返回 null
+const listWebDavFiles = async (storageBaseUrl, authHeader) => {
+  const res = await fetchWithTimeout(storageBaseUrl, {
+    method: 'PROPFIND',
+    headers: {
+      'Authorization': authHeader,
+      'User-Agent': 'CloudNav/1.0',
+      'Depth': '1',
+      'Content-Type': 'application/xml',
+    },
+    body: '<?xml version="1.0" encoding="UTF-8"?><D:propfind xmlns:D="DAV:"><D:prop><D:resourcetype/></D:prop></D:propfind>',
+  }, 15000);
+  if (!(res.ok || res.status === 207)) return null;
+  const xml = await res.text();
+  // 解析所有 <D:href>（或无命名空间 <href>）取文件名
+  const hrefs = [...xml.matchAll(/<(?:[A-Za-z][\w-]*:)?href>([^<]+)<\/(?:[A-Za-z][\w-]*:)?href>/gi)].map(m => m[1]);
+  const names = hrefs.map(h => {
+    let p = h;
+    try { p = decodeURIComponent(h); } catch (e) { /* 保留原样 */ }
+    return p.split('/').filter(Boolean).pop() || '';
+  });
+  return [...new Set(names)];
+};
+
+// 备份轮转：按文件名中的日期（YYYYMMDD）排序，json/html 各最多保留 maxKeep 份，超出删除最旧的
+// 旧版固定文件名（cloudnav_backup.json / cloudnav_bookmarks.html）视为最旧，凑满 5 份后一并清理
+const rotateBackups = async (storageBaseUrl, authHeader, maxKeep = 5) => {
+  try {
+    const names = await listWebDavFiles(storageBaseUrl, authHeader);
+    if (!names || names.length === 0) return;
+
+    const del = (name) => fetchWithTimeout(storageBaseUrl + name, {
+      method: 'DELETE',
+      headers: { 'Authorization': authHeader, 'User-Agent': 'CloudNav/1.0' },
+    }, 15000).catch(() => {});
+
+    // 单类文件的轮转：带日期的 + 可选的旧版固定名，按日期倒序，超出 maxKeep 的删除
+    const rotateOne = (pattern, legacyName) => {
+      const all = names
+        .filter(n => pattern.test(n))
+        .map(n => ({ name: n, date: (n.match(/(\d{8})/) || [])[1] || '' }));
+      if (names.includes(legacyName)) all.push({ name: legacyName, date: '00000000' });
+      all.sort((a, b) => b.date.localeCompare(a.date));
+      return all.slice(maxKeep).map(x => x.name);
+    };
+
+    const toDelete = [
+      ...rotateOne(/^cloudnav_backup_\d{8}\.json$/, 'cloudnav_backup.json'),
+      ...rotateOne(/^cloudnav_bookmarks_\d{8}\.html$/, 'cloudnav_bookmarks.html'),
+    ];
+    if (toDelete.length > 0) {
+      await Promise.all(toDelete.map(del));
+    }
+  } catch (e) {
+    // 轮转失败不影响备份本身
+    console.warn('Backup rotation failed:', e);
+  }
+};
+
 export async function onRequest(context) {
   const { request, env } = context;
   const corsHeaders = getCorsHeaders(env, request);
@@ -110,8 +174,6 @@ export async function onRequest(context) {
 
     const filename = 'cloudnav_backup.json';
     const fileUrl = storageBaseUrl + filename;
-    const htmlFilename = 'cloudnav_bookmarks.html';
-    const htmlFileUrl = storageBaseUrl + htmlFilename;
 
     let fetchUrl = baseUrl;
     let method = 'PROPFIND';
@@ -137,10 +199,13 @@ export async function onRequest(context) {
         // 忽略 MKCOL 错误，继续尝试 PUT
       }
 
-      // 支持自定义文件名（用于恢复前自动备份，不影响主备份文件）
+      // 自定义文件名（用于恢复前自动备份，固定文件名，不参与轮转）
+      // 主备份使用带日期的文件名（cloudnav_backup_YYYYMMDD.json），同一天多次备份覆盖当天文件
       const customFilename = payload && payload._filename;
-      const targetFilename = customFilename || filename;
+      const dateStr = getBeijingDateStr();
+      const targetFilename = customFilename || `cloudnav_backup_${dateStr}.json`;
       const targetFileUrl = storageBaseUrl + targetFilename;
+      const htmlTargetUrl = storageBaseUrl + `cloudnav_bookmarks_${dateStr}.html`;
 
       // 1. 上传 JSON 备份（上传大文件给足超时时间）
       let jsonPutRes;
@@ -162,12 +227,12 @@ export async function onRequest(context) {
       }
       const jsonSuccess = jsonPutRes.ok || jsonPutRes.status === 207;
 
-      // 2. 上传 HTML 书签文件（仅主备份文件，且提供了 bookmarkHtml 时才上传）
+      // 2. 上传 HTML 书签文件（仅主备份，且提供了 bookmarkHtml 时才上传）
       let htmlSuccess = true;
       let htmlErr = '';
       if (!customFilename && payload && payload.bookmarkHtml) {
         try {
-          const htmlRes = await fetchWithTimeout(htmlFileUrl, {
+          const htmlRes = await fetchWithTimeout(htmlTargetUrl, {
             method: 'PUT',
             headers: {
               'Authorization': authHeader,
@@ -196,6 +261,12 @@ export async function onRequest(context) {
           htmlError: htmlErr
         }, 200, corsHeaders);
       }
+
+      // 3. 备份轮转：json/html 各按日期最多保留 5 份，超出删除最旧的（旧版固定文件名一并清理）
+      if (!customFilename) {
+        await rotateBackups(storageBaseUrl, authHeader, 5);
+      }
+
       return jsonResponse({
         success: true,
         status: jsonPutRes.status,
@@ -203,7 +274,19 @@ export async function onRequest(context) {
         htmlError: htmlErr
       }, 200, corsHeaders);
     } else if (operation === 'download') {
+      // 优先恢复最新的带日期备份（cloudnav_backup_YYYYMMDD.json），没有时回退旧版固定文件名
       fetchUrl = fileUrl;
+      try {
+        const names = await listWebDavFiles(storageBaseUrl, authHeader);
+        if (names && names.length > 0) {
+          const dated = names
+            .filter(n => /^cloudnav_backup_\d{8}\.json$/.test(n))
+            .sort((a, b) => (b.match(/(\d{8})/) || [])[1].localeCompare((a.match(/(\d{8})/) || [])[1]));
+          if (dated.length > 0) {
+            fetchUrl = storageBaseUrl + dated[0];
+          }
+        }
+      } catch (e) { /* 列目录失败，回退旧版文件名 */ }
       method = 'GET';
     } else {
       return jsonResponse({ error: 'Invalid operation' }, 400, corsHeaders);

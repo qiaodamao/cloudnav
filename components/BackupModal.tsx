@@ -30,7 +30,7 @@ const BackupModal: React.FC<BackupModalProps> = ({
   const [statusMsg, setStatusMsg] = useState('');
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [importMsg, setImportMsg] = useState('');
-  const [lastAutoBackupDate, setLastAutoBackupDate] = useState('');
+  const [lastAutoBackupTime, setLastAutoBackupTime] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { markAuthExpired } = useAuthContext();
 
@@ -42,7 +42,8 @@ const BackupModal: React.FC<BackupModalProps> = ({
         setSyncStatus('idle');
         setImportStatus('idle');
         setImportMsg('');
-        setLastAutoBackupDate(localStorage.getItem('cloudnav_last_auto_backup_date') || '');
+        const t = localStorage.getItem('cloudnav_last_auto_backup_time');
+        setLastAutoBackupTime(t ? new Date(t).toLocaleString('zh-CN', { hour12: false }) : '');
     }
   }, [isOpen, webDavConfig]);
 
@@ -443,7 +444,7 @@ const BackupModal: React.FC<BackupModalProps> = ({
                         </div>
                     )}
 
-                    {/* 每日自动备份开关 */}
+                    {/* 自动备份开关（数据变化触发） */}
                     <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
                         <div>
                             <label className="flex items-center gap-2 cursor-pointer">
@@ -453,10 +454,10 @@ const BackupModal: React.FC<BackupModalProps> = ({
                                     onChange={(e) => setConfig({...config, autoBackup: e.target.checked})}
                                     className="rounded text-blue-600 focus:ring-blue-500"
                                 />
-                                <span className="text-sm text-slate-600 dark:text-slate-400">每日自动备份</span>
+                                <span className="text-sm text-slate-600 dark:text-slate-400">自动备份（数据变化时）</span>
                             </label>
                             <p className="text-xs text-slate-400 mt-1 ml-6">
-                                {lastAutoBackupDate ? `上次自动备份：${lastAutoBackupDate}` : '每天打开网站时自动上传一次备份（需保持登录状态）'}
+                                {lastAutoBackupTime ? `上次自动备份：${lastAutoBackupTime}` : '数据变化后自动上传备份（需保持登录状态），云端按日期保留最近 5 份'}
                             </p>
                         </div>
                     </div>
@@ -476,17 +477,17 @@ const BackupModal: React.FC<BackupModalProps> = ({
                     >
                         <Upload className="w-8 h-8 text-blue-500 mb-2 group-hover:-translate-y-1 transition-transform" />
                         <span className="text-sm font-medium dark:text-white">上传备份到 WebDAV</span>
-                        <span className="text-xs text-slate-500 mt-1">覆盖云端数据</span>
+                        <span className="text-xs text-slate-500 mt-1">按日期命名，保留最近 5 份</span>
                     </button>
 
-                    <button 
+                    <button
                         onClick={handleRestoreFromCloud}
                         disabled={!config.enabled}
                         className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
                     >
                         <Download className="w-8 h-8 text-purple-500 mb-2 group-hover:-translate-y-1 transition-transform" />
                         <span className="text-sm font-medium dark:text-white">从 WebDAV 恢复</span>
-                        <span className="text-xs text-slate-500 mt-1">覆盖本地数据</span>
+                        <span className="text-xs text-slate-500 mt-1">恢复最近一份备份，覆盖本地数据</span>
                     </button>
                 </div>
                 
