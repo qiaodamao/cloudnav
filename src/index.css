@@ -140,9 +140,9 @@ html.dark body {
   50% { opacity: 0.5; }
 }
 
+/* backwards 填充：动画结束后不再覆盖内联 transform/opacity，否则拖拽排序时 dnd-kit 的位移全部失效 */
 .link-card {
-  animation: fadeIn 0.3s ease-out forwards;
-  opacity: 0;
+  animation: fadeIn 0.3s ease-out backwards;
 }
 
 /* 浅色模式下书签卡片描边色覆盖：抵消上方 [class*="dark:"] 的 !important 覆盖 */

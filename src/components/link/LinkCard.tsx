@@ -43,7 +43,7 @@ export function LinkCard({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.6 : 1,
     ...(color ? {
       '--icon-color': color.hex,
       '--icon-color-rgb': color.rgb,
@@ -140,7 +140,7 @@ export function LinkCard({
         isDetailedView
           ? 'flex flex-col rounded-2xl border p-4 min-h-[100px] items-start justify-start text-left w-full min-w-0'
           : 'flex items-center justify-between rounded-xl border p-3'
-      } ${isDragging ? 'shadow-2xl scale-105' : ''}`}
+      } ${isDragging ? 'z-50 shadow-2xl scale-105' : ''}`}
       onClick={handleClick}
       onContextMenu={(e) => onContextMenu(e, link)}
       onMouseMove={handleMouseMove}
