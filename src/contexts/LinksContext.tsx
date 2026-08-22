@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer, useCallback, useMemo } fr
 import { LinkItem, Category } from '../../types';
 import { STORAGE_KEYS, API_ENDPOINTS } from '../constants';
 import { useAuthContext } from './AuthContext';
+import { enqueueCloudWrite, getKnownLinkIds, setKnownLinkIds } from '../utils/cloudSync';
 
 // --- Types ---
 interface LinksState {
@@ -69,30 +70,38 @@ export function LinksProvider({ children }: { children: React.ReactNode }) {
   // 同步到云端
   const syncToCloud = useCallback(async (links: LinkItem[], categories: Category[], token: string) => {
     dispatch({ type: 'SET_SYNC_STATUS', payload: 'saving' });
-    try {
-      const res = await fetch(API_ENDPOINTS.STORAGE, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-password': token,
-        },
-        body: JSON.stringify({ links, categories }),
-      });
-      if (res.status === 401) {
+    // 串行化执行：多次快速修改按顺序写回云端，避免旧请求后到覆盖新数据
+    return enqueueCloudWrite(async () => {
+      try {
+        const res = await fetch(API_ENDPOINTS.STORAGE, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-password': token,
+          },
+          // knownIds：上次同步时的链接 ID 快照，服务端据此保留其他端（扩展等）新增的链接
+          body: JSON.stringify({ links, categories, knownIds: getKnownLinkIds() }),
+        });
+        if (res.status === 401) {
+          dispatch({ type: 'SET_SYNC_STATUS', payload: 'error' });
+          // token 过期：弹窗提示并触发重新登录流程
+          markAuthExpired();
+          return false;
+        }
+        if (!res.ok) throw new Error('Sync failed');
+        // 同步成功：更新快照（含服务端合并回来的其他端新增链接）
+        const data = await res.json().catch(() => ({}));
+        const mergedIds: string[] = Array.isArray(data?.mergedIds) ? data.mergedIds : [];
+        setKnownLinkIds([...links.map(l => l.id), ...mergedIds]);
+        dispatch({ type: 'SET_SYNC_STATUS', payload: 'saved' });
+        setTimeout(() => dispatch({ type: 'SET_SYNC_STATUS', payload: 'idle' }), 2000);
+        return true;
+      } catch (e) {
+        console.error('Sync failed:', e);
         dispatch({ type: 'SET_SYNC_STATUS', payload: 'error' });
-        // token 过期：弹窗提示并触发重新登录流程
-        markAuthExpired();
         return false;
       }
-      if (!res.ok) throw new Error('Sync failed');
-      dispatch({ type: 'SET_SYNC_STATUS', payload: 'saved' });
-      setTimeout(() => dispatch({ type: 'SET_SYNC_STATUS', payload: 'idle' }), 2000);
-      return true;
-    } catch (e) {
-      console.error('Sync failed:', e);
-      dispatch({ type: 'SET_SYNC_STATUS', payload: 'error' });
-      return false;
-    }
+    });
   }, [markAuthExpired]);
 
   // 持久化：本地 + 云端

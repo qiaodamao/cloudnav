@@ -16,13 +16,13 @@
   ],
   "author": "qiaodamao",
   "license": "MIT",
-  "homepage": "https://github.com",
+  "homepage": "https://github.com/qiaodamao/cloudnav",
   "repository": {
     "type": "git",
-    "url": "https://github.com"
+    "url": "https://github.com/qiaodamao/cloudnav.git"
   },
   "bugs": {
-    "url": "https://github.com"
+    "url": "https://github.com/qiaodamao/cloudnav/issues"
   },
   "engines": {
     "node": ">=18.0.0",

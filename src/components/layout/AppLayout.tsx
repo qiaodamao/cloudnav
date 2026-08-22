@@ -28,7 +28,7 @@ const QRCodeModal = lazy(() => import('../../../components/QRCodeModal'));
 export function AppLayout() {
   // Contexts
   const { authToken, requiresAuth, isCheckingAuth, capabilities, login, logout, requiresAccess, isAccessVerified, isCheckingAccess, accessLogin, authExpired } = useAuthContext();
-  const { links = [], addLink, updateLink, deleteLink, deleteLinks, setLinksAndSync } = useLinksContext();
+  const { links = [], setLinksAndSync } = useLinksContext();
   const { categories = [], categoryTree = [], setCategoriesAndSync, unlockedCategoryIds = new Set(), unlockCategory } = useCategoriesContext();
   const { ai: aiConfig, icon: iconConfig, viewMode, showPinnedWebsites, weather, website, webdav, search, setAI, setIcon, setWebsite, setShowPinned, setWeather, setWebDav, setSearch, setViewMode } = useConfigContext();
 
@@ -267,10 +267,9 @@ export function AppLayout() {
           }
         }
       }
-      deleteLink(id);
       setLinksAndSync(links.filter(l => l.id !== id), categories);
     }
-  }, [deleteLink, links, categories, setLinksAndSync, authToken]);
+  }, [links, categories, setLinksAndSync, authToken]);
 
   const handleSaveLink = useCallback((data: Omit<LinkItem, 'id' | 'createdAt'>) => {
     if (editingLink) {

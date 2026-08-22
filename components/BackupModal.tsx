@@ -32,7 +32,7 @@ const BackupModal: React.FC<BackupModalProps> = ({
   const [importMsg, setImportMsg] = useState('');
   const [lastAutoBackupTime, setLastAutoBackupTime] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { markAuthExpired } = useAuthContext();
+  const { markAuthExpired, authToken } = useAuthContext();
 
   useEffect(() => {
     if(isOpen) {
@@ -269,11 +269,16 @@ const BackupModal: React.FC<BackupModalProps> = ({
       setImportMsg(`正在读取本地图标 (${curr}/${tot})...`);
     });
 
-    // 也获取 config key 以备份所有设置
+    // 也获取 config key 以备份所有设置（需带登录 token，否则 401 导致配置静默丢失）
     let appConfig = null;
     try {
-      const res = await fetch('/api/storage?key=config');
-      if (res.ok) {
+      const res = await fetch('/api/storage?key=config', {
+        headers: { 'x-auth-password': authToken || '' },
+      });
+      if (res.status === 401) {
+        // token 过期：提示重新登录，本次导出不含配置
+        markAuthExpired();
+      } else if (res.ok) {
         const data = await res.json();
         if (data.value) appConfig = JSON.parse(data.value);
       }
@@ -292,7 +297,9 @@ const BackupModal: React.FC<BackupModalProps> = ({
     URL.revokeObjectURL(url);
     
     setImportStatus('success');
-    setImportMsg('本地备份导出成功，已包含所有自定义图标文件！');
+    setImportMsg(appConfig
+      ? '本地备份导出成功，已包含所有设置和自定义图标文件！'
+      : '本地备份导出成功（含自定义图标）。注意：未登录或登录已过期，本次备份未包含设置。');
   };
 
   const handleImportJson = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -444,7 +451,7 @@ const BackupModal: React.FC<BackupModalProps> = ({
                         </div>
                     )}
 
-                    {/* 自动备份开关（数据变化触发） */}
+                    {/* 自动备份开关（每日一次） */}
                     <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
                         <div>
                             <label className="flex items-center gap-2 cursor-pointer">
@@ -454,10 +461,10 @@ const BackupModal: React.FC<BackupModalProps> = ({
                                     onChange={(e) => setConfig({...config, autoBackup: e.target.checked})}
                                     className="rounded text-blue-600 focus:ring-blue-500"
                                 />
-                                <span className="text-sm text-slate-600 dark:text-slate-400">自动备份（数据变化时）</span>
+                                <span className="text-sm text-slate-600 dark:text-slate-400">每日自动备份</span>
                             </label>
                             <p className="text-xs text-slate-400 mt-1 ml-6">
-                                {lastAutoBackupTime ? `上次自动备份：${lastAutoBackupTime}` : '数据变化后自动上传备份（需保持登录状态），云端按日期保留最近 5 份'}
+                                {lastAutoBackupTime ? `上次自动备份：${lastAutoBackupTime}` : '每天自动上传一次备份（需保持登录状态），云端按日期保留最近 5 份'}
                             </p>
                         </div>
                     </div>

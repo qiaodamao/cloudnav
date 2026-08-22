@@ -6,6 +6,7 @@ import { useCategoriesContext } from '../contexts/CategoriesContext';
 import { useConfigContext } from '../contexts/ConfigContext';
 import { configManager } from '../utils/configManager';
 import { useAuthContext } from '../contexts/AuthContext';
+import { setKnownLinkIds } from '../utils/cloudSync';
 
 /**
  * 数据同步 Hook：管理 localStorage ↔ KV 的加载和同步
@@ -14,7 +15,7 @@ export function useDataSync() {
   const { links = [], initLinks, setLinksAndSync } = useLinksContext();
   const { categories = [], initCategories } = useCategoriesContext();
   const { initConfig } = useConfigContext();
-  const { authToken } = useAuthContext();
+  const { authToken, markAuthExpired } = useAuthContext();
   const initialized = useRef(false);
 
   // 从 localStorage 加载
@@ -60,6 +61,12 @@ export function useDataSync() {
         cache: 'no-store',
         headers,
       });
+      if (res.status === 401) {
+        // token 过期：标记过期并回退本地数据，
+        // 防止脱敏/不完整数据覆盖本地（分类密码丢失风险）
+        markAuthExpired();
+        return null;
+      }
       if (!res.ok) return null;
       const data = await res.json();
       if (data.links?.length > 0 || data.categories?.length > 0) {
@@ -70,7 +77,7 @@ export function useDataSync() {
       console.error('Load from cloud failed:', e);
       return null;
     }
-  }, [authToken]);
+  }, [authToken, markAuthExpired]);
 
   // 从 KV 加载各个配置
   const loadConfigsFromCloud = useCallback(async () => {
@@ -128,6 +135,8 @@ export function useDataSync() {
       }
       initLinks(cloud.links || []);
       initCategories(cats);
+      // 记录链接 ID 快照：后续全量同步时据此识别其他端（扩展等）新增的链接
+      setKnownLinkIds((cloud.links || []).map((l: LinkItem) => l.id));
       // 更新 localStorage 缓存
       localStorage.setItem(STORAGE_KEYS.LOCAL_STORAGE_KEY, JSON.stringify({
         links: cloud.links || [],

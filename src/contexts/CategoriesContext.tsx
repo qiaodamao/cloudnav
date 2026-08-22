@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer, useCallback, useMemo } fr
 import { Category, LinkItem, DEFAULT_CATEGORIES } from '../../types';
 import { STORAGE_KEYS, API_ENDPOINTS } from '../constants';
 import { useAuthContext } from './AuthContext';
+import { enqueueCloudWrite, getKnownLinkIds, setKnownLinkIds } from '../utils/cloudSync';
 
 // --- Types ---
 interface CategoriesState {
@@ -115,22 +116,32 @@ export function CategoriesProvider({ children }: { children: React.ReactNode }) 
   const persist = useCallback(async (categories: Category[], links: LinkItem[]) => {
     localStorage.setItem(STORAGE_KEYS.LOCAL_STORAGE_KEY, JSON.stringify({ links, categories }));
     if (authToken) {
-      try {
-        const res = await fetch(API_ENDPOINTS.STORAGE, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-auth-password': authToken,
-          },
-          body: JSON.stringify({ links, categories }),
-        });
-        if (res.status === 401) {
-          // token 过期：弹窗提示并触发重新登录流程
-          markAuthExpired();
+      // 串行化执行：与 LinksContext 共用同一写入队列，防止并发覆盖
+      await enqueueCloudWrite(async () => {
+        try {
+          const res = await fetch(API_ENDPOINTS.STORAGE, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-auth-password': authToken,
+            },
+            body: JSON.stringify({ links, categories, knownIds: getKnownLinkIds() }),
+          });
+          if (res.status === 401) {
+            // token 过期：弹窗提示并触发重新登录流程
+            markAuthExpired();
+            return;
+          }
+          if (res.ok) {
+            // 同步成功：更新快照（含服务端合并回来的其他端新增链接）
+            const data = await res.json().catch(() => ({}));
+            const mergedIds: string[] = Array.isArray(data?.mergedIds) ? data.mergedIds : [];
+            setKnownLinkIds([...links.map(l => l.id), ...mergedIds]);
+          }
+        } catch (e) {
+          console.error('Sync categories failed:', e);
         }
-      } catch (e) {
-        console.error('Sync categories failed:', e);
-      }
+      });
     }
   }, [authToken, markAuthExpired]);
 

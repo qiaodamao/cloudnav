@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useCallback, useEffect, useRef } from 'react';
 import { STORAGE_KEYS, API_ENDPOINTS } from '../constants';
+import { toast } from '../../components/Toast';
 
 // --- Types ---
 interface AuthState {
@@ -217,7 +218,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_AUTH_EXPIRED', payload: true });
     localStorage.removeItem(STORAGE_KEYS.AUTH_KEY);
     dispatch({ type: 'LOGOUT' });
-    alert('登录状态已过期，请重新登录后再操作。重新登录后将自动刷新页面以同步数据。');
+    toast.warning('登录状态已过期，请重新登录后再操作。重新登录后将自动刷新页面以同步数据。', 6000);
   }, []);
 
   // 初始化：先检查访问密码，通过后再检查管理员密码需求

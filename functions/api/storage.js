@@ -161,9 +161,16 @@ export async function onRequest(context) {
         const data = await kv.get(STORAGE_KEYS.CATEGORIES_CONFIG_KEY);
         const categories = data ? JSON.parse(data) : [];
         const providedPassword = request.headers.get('x-auth-password');
-        const isAuthenticated = await verifyAuth({ providedPassword, serverPassword: env.PASSWORD, kv });
-        const result = isAuthenticated ? categories : categories.map(({ password, ...rest }) => rest);
-        return jsonResponse(result, 200, corsHeaders);
+        // 带了凭据但验证失败（token 过期）：明确返回 401，让前端走重新登录流程，
+        // 避免脱敏数据（丢失分类密码）被当作有效数据覆盖本地后回写云端
+        if (providedPassword) {
+          const isAuthenticated = await verifyAuth({ providedPassword, serverPassword: env.PASSWORD, kv });
+          if (!isAuthenticated) {
+            return jsonResponse({ error: '登录状态已过期' }, 401, corsHeaders);
+          }
+          return jsonResponse(categories, 200, corsHeaders);
+        }
+        return jsonResponse(categories.map(({ password, ...rest }) => rest), 200, corsHeaders);
       }
 
       // 获取链接
@@ -200,20 +207,27 @@ export async function onRequest(context) {
       // 获取全部数据（未认证脱敏 password，认证后返回完整）
       if (getConfig === 'true') {
         const categoriesData = await kv.get(STORAGE_KEYS.CATEGORIES_CONFIG_KEY);
-        const categories = categoriesData ? JSON.parse(categoriesData) : [];
+        let categories = categoriesData ? JSON.parse(categoriesData) : [];
 
         const providedPassword = request.headers.get('x-auth-password');
-        const isAuthenticated = await verifyAuth({ providedPassword, serverPassword: env.PASSWORD, kv });
-        const sanitizedCategories = isAuthenticated
-          ? categories
-          : categories.map(({ password, ...rest }) => rest);
+        // 带了凭据但验证失败（token 过期）：返回 401 而非静默脱敏，
+        // 防止前端用脱敏数据（丢失分类密码）覆盖本地后又回写云端造成密码永久丢失
+        if (providedPassword) {
+          const isAuthenticated = await verifyAuth({ providedPassword, serverPassword: env.PASSWORD, kv });
+          if (!isAuthenticated) {
+            return jsonResponse({ error: '登录状态已过期' }, 401, corsHeaders);
+          }
+        } else {
+          // 访客（未带凭据）：脱敏分类密码
+          categories = categories.map(({ password, ...rest }) => rest);
+        }
 
         // 读取所有分类链接
         const links = await readAllCategoryLinks(kv);
 
         return jsonResponse({
           links,
-          categories: sanitizedCategories,
+          categories,
         }, 200, corsHeaders);
       }
 
@@ -306,9 +320,24 @@ export async function onRequest(context) {
 
       // 同时保存链接和分类
       if (body.links && body.categories) {
-        await saveCategoryLinks(kv, body.links, body.categories);
+        // 合并其他端（浏览器扩展等）直接写入云端的新链接：
+        // 云端存在、本次 payload 没有、且不在客户端已知快照（knownIds）中的链接
+        // 视为其他端新增，保留而不被全量覆盖
+        let linksToSave = body.links;
+        let mergedIds = [];
+        const knownIds = Array.isArray(body.knownIds) ? new Set(body.knownIds) : null;
+        if (knownIds) {
+          const payloadIds = new Set(linksToSave.map(l => l && l.id).filter(Boolean));
+          const current = await readAllCategoryLinks(kv);
+          const external = current.filter(l => l && l.id && !payloadIds.has(l.id) && !knownIds.has(l.id));
+          if (external.length > 0) {
+            linksToSave = [...linksToSave, ...external];
+            mergedIds = external.map(l => l.id);
+          }
+        }
+        await saveCategoryLinks(kv, linksToSave, body.categories);
         await kv.put(STORAGE_KEYS.CATEGORIES_CONFIG_KEY, JSON.stringify(body.categories));
-        return jsonResponse({ success: true }, 200, corsHeaders);
+        return jsonResponse({ success: true, mergedIds }, 200, corsHeaders);
       } else if (body.links) {
         await saveCategoryLinks(kv, body.links);
         return jsonResponse({ success: true }, 200, corsHeaders);
