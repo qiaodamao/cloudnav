@@ -32,6 +32,8 @@ export interface WebDavConfig {
   username: string;
   password: string;
   enabled: boolean;
+  // 每日自动备份到 WebDAV（页面运行时检查，每天首次触发）
+  autoBackup?: boolean;
 }
 
 // AI 服务提供商

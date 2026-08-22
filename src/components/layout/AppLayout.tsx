@@ -5,6 +5,7 @@ import { useCategoriesContext } from '../../contexts/CategoriesContext';
 import { useConfigContext } from '../../contexts/ConfigContext';
 import { useSearch } from '../../hooks/useSearch';
 import { useDataSync } from '../../hooks/useDataSync';
+import { useAutoBackup } from '../../hooks/useAutoBackup';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { MainContent } from './MainContent';
@@ -37,6 +38,8 @@ export function AppLayout() {
     isInternal, handleSearch, visitorEngineId, setVisitorEngineId
   } = useSearch();
   const { initData } = useDataSync();
+  // 每日自动备份到 WebDAV（登录 + 启用 + 开启自动备份时生效）
+  useAutoBackup();
 
   // UI State
   const [sidebarOpen, setSidebarOpen] = useState(false);

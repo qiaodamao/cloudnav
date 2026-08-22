@@ -72,3 +72,64 @@ export const downloadBackup = async (config: WebDavConfig): Promise<{ links: Lin
     }
     return null;
 };
+
+/**
+ * 打包本地图标为 base64（用于备份上传）
+ * 从 links 中收集所有 /api/favicon?key= 形式的图标 URL，逐个拉取并转为 base64
+ */
+export const fetchIconsAsBase64 = async (
+    linksList: LinkItem[],
+    onProgress?: (current: number, total: number) => void
+): Promise<Array<{ key: string, platform: 'edgeone' | 'cloudflare', data: string }>> => {
+    const uploadedIcons: Array<{ key: string, platform: 'edgeone' | 'cloudflare', data: string }> = [];
+
+    const iconUrls = new Set<string>();
+    linksList.forEach(l => {
+        if (l.edgeoneBlobUrl && l.edgeoneBlobUrl.startsWith('/api/favicon?key=')) {
+            iconUrls.add(l.edgeoneBlobUrl);
+        }
+        if (l.cloudflareR2Url && l.cloudflareR2Url.startsWith('/api/favicon?key=')) {
+            iconUrls.add(l.cloudflareR2Url);
+        }
+        if (l.icon && l.icon.startsWith('/api/favicon?key=')) {
+            iconUrls.add(l.icon);
+        }
+    });
+
+    const total = iconUrls.size;
+    let current = 0;
+
+    for (const iconUrl of iconUrls) {
+        current++;
+        if (onProgress) onProgress(current, total);
+
+        try {
+            const urlObj = new URL(iconUrl, window.location.origin);
+            const key = urlObj.searchParams.get('key');
+            if (!key) continue;
+
+            const res = await fetch(iconUrl);
+            if (!res.ok) continue;
+
+            const blob = await res.blob();
+            const base64 = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+
+            let platform: 'edgeone' | 'cloudflare' = 'edgeone';
+            const matchingLink = linksList.find(l => l.cloudflareR2Url === iconUrl || (l.icon === iconUrl && l.iconType === 'upload-cloudflare'));
+            if (matchingLink) {
+                platform = 'cloudflare';
+            }
+
+            uploadedIcons.push({ key, platform, data: base64 });
+        } catch (e) {
+            console.error(`Failed to export icon: ${iconUrl}`, e);
+        }
+    }
+
+    return uploadedIcons;
+};

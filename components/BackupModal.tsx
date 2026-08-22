@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Cloud, Download, Upload, CheckCircle2, AlertCircle, RefreshCw, Save, FolderUp } from 'lucide-react';
 import { Category, LinkItem, WebDavConfig, SearchConfig, AIConfig } from '../types';
-import { checkWebDavConnection, uploadBackup, downloadBackup } from '../services/webDavService';
+import { checkWebDavConnection, uploadBackup, downloadBackup, fetchIconsAsBase64 } from '../services/webDavService';
 import { generateBookmarkHtml, downloadHtmlFile } from '../services/exportService';
 import { useAuthContext } from '../src/contexts/AuthContext';
 
@@ -30,6 +30,7 @@ const BackupModal: React.FC<BackupModalProps> = ({
   const [statusMsg, setStatusMsg] = useState('');
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [importMsg, setImportMsg] = useState('');
+  const [lastAutoBackupDate, setLastAutoBackupDate] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { markAuthExpired } = useAuthContext();
 
@@ -41,66 +42,9 @@ const BackupModal: React.FC<BackupModalProps> = ({
         setSyncStatus('idle');
         setImportStatus('idle');
         setImportMsg('');
+        setLastAutoBackupDate(localStorage.getItem('cloudnav_last_auto_backup_date') || '');
     }
   }, [isOpen, webDavConfig]);
-
-  const fetchIconsAsBase64 = async (linksList: LinkItem[], onProgress?: (current: number, total: number) => void) => {
-    const uploadedIcons: Array<{ key: string, platform: 'edgeone' | 'cloudflare', data: string }> = [];
-    
-    const iconUrls = new Set<string>();
-    linksList.forEach(l => {
-      if (l.edgeoneBlobUrl && l.edgeoneBlobUrl.startsWith('/api/favicon?key=')) {
-        iconUrls.add(l.edgeoneBlobUrl);
-      }
-      if (l.cloudflareR2Url && l.cloudflareR2Url.startsWith('/api/favicon?key=')) {
-        iconUrls.add(l.cloudflareR2Url);
-      }
-      if (l.icon && l.icon.startsWith('/api/favicon?key=')) {
-        iconUrls.add(l.icon);
-      }
-    });
-
-    const total = iconUrls.size;
-    let current = 0;
-
-    for (const iconUrl of iconUrls) {
-      current++;
-      if (onProgress) onProgress(current, total);
-      
-      try {
-        const urlObj = new URL(iconUrl, window.location.origin);
-        const key = urlObj.searchParams.get('key');
-        if (!key) continue;
-
-        const res = await fetch(iconUrl);
-        if (!res.ok) continue;
-
-        const blob = await res.blob();
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-
-        let platform: 'edgeone' | 'cloudflare' = 'edgeone';
-        const matchingLink = linksList.find(l => l.cloudflareR2Url === iconUrl || (l.icon === iconUrl && l.iconType === 'upload-cloudflare'));
-        if (matchingLink) {
-          platform = 'cloudflare';
-        }
-
-        uploadedIcons.push({
-          key,
-          platform,
-          data: base64
-        });
-      } catch (e) {
-        console.error(`Failed to export icon: ${iconUrl}`, e);
-      }
-    }
-
-    return uploadedIcons;
-  };
 
   const restoreUploadedIcons = async (
     uploadedIcons: Array<{ key: string, platform: 'edgeone' | 'cloudflare', data: string }>,
@@ -498,6 +442,24 @@ const BackupModal: React.FC<BackupModalProps> = ({
                             {testDetail}
                         </div>
                     )}
+
+                    {/* 每日自动备份开关 */}
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
+                        <div>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={!!config.autoBackup}
+                                    onChange={(e) => setConfig({...config, autoBackup: e.target.checked})}
+                                    className="rounded text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="text-sm text-slate-600 dark:text-slate-400">每日自动备份</span>
+                            </label>
+                            <p className="text-xs text-slate-400 mt-1 ml-6">
+                                {lastAutoBackupDate ? `上次自动备份：${lastAutoBackupDate}` : '每天打开网站时自动上传一次备份（需保持登录状态）'}
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </section>
 
