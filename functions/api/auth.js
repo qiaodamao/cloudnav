@@ -1,7 +1,11 @@
 // 认证接口
 // 支持 EdgeOne Pages / Cloudflare Workers
+// 多会话并存：最多保留 MAX_SESSIONS 个有效 token，超出时踢掉最旧的
 
 import { getKV, getCorsHeaders, jsonResponse } from './_kvAdapter.js';
+
+const MAX_SESSIONS = 5; // 管理员会话上限
+const SESSION_LIST_KEY = 'auth_tokens'; // 会话列表（JSON 数组，按创建顺序旧→新）
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -9,6 +13,28 @@ export async function onRequest(context) {
 
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  // DELETE: 登出，删除服务端 token 使会话立即失效
+  if (request.method === 'DELETE') {
+    try {
+      const kv = getKV(env);
+      const token = request.headers.get('x-auth-password') || '';
+      if (!token) {
+        return jsonResponse({ error: '缺少认证信息' }, 401, corsHeaders);
+      }
+
+      const tokenVal = await kv.get(`auth_token:${token}`);
+      if (tokenVal === 'valid') {
+        await kv.delete(`auth_token:${token}`);
+        await removeFromSessionList(kv, token);
+      }
+
+      return jsonResponse({ success: true, message: '已登出' }, 200, corsHeaders);
+    } catch (err) {
+      console.error('Auth logout error:', err);
+      return jsonResponse({ error: '登出失败' }, 500, corsHeaders);
+    }
   }
 
   if (request.method !== 'POST') {
@@ -44,18 +70,29 @@ export async function onRequest(context) {
     // 成功：清除失败计数
     try { await kv.delete(failKey); } catch (e) {}
 
-    // 清理旧 Token：读取上次生成的 token 并删除
+    // 旧单会话机制迁移：清理 last_token 指向的旧 token（一次性）
     try {
-      const oldToken = await kv.get('last_token');
-      if (oldToken) {
-        await kv.delete(`auth_token:${oldToken}`);
+      const legacyToken = await kv.get('last_token');
+      if (legacyToken) {
+        await kv.delete(`auth_token:${legacyToken}`);
+        await kv.delete('last_token');
       }
     } catch (e) {
-      console.warn('Failed to clean old token:', e);
+      console.warn('Failed to clean legacy token:', e);
+    }
+
+    // 读取会话列表，过滤已自然过期的 token
+    const sessionList = await readValidSessionList(kv);
+
+    // 超出会话上限时，踢掉最旧的会话
+    while (sessionList.length >= MAX_SESSIONS) {
+      const oldest = sessionList.shift();
+      try { await kv.delete(`auth_token:${oldest}`); } catch (e) {}
     }
 
     // 生成安全随机 Token
     const token = generateSecureToken();
+    sessionList.push(token);
 
     // 读取密码过期配置
     // 先读分片 config:website（新存储方式），没有再 fallback 到旧 config（整体存储）
@@ -86,8 +123,8 @@ export async function onRequest(context) {
     const kvOptions = expirationTtl ? { expirationTtl } : {};
     await kv.put(`auth_token:${token}`, 'valid', kvOptions);
 
-    // 记录当前 Token（用于下次登录时清理）
-    await kv.put('last_token', token, kvOptions);
+    // 保存会话列表（新 token 已在列表末尾）
+    await saveSessionList(kv, sessionList);
 
     return jsonResponse({
       success: true,
@@ -108,6 +145,68 @@ function generateSecureToken() {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
   return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * 读取会话列表，过滤已自然过期的 token
+ * 单个 token 查询失败时保守保留，避免误踢有效会话
+ */
+async function readValidSessionList(kv) {
+  try {
+    const listStr = await kv.get(SESSION_LIST_KEY);
+    if (!listStr) return [];
+    const list = JSON.parse(listStr);
+    if (!Array.isArray(list)) return [];
+
+    const valid = [];
+    for (const t of list) {
+      try {
+        if ((await kv.get(`auth_token:${t}`)) === 'valid') {
+          valid.push(t);
+        }
+      } catch (e) {
+        valid.push(t);
+      }
+    }
+    return valid;
+  } catch (e) {
+    console.warn('Failed to read session list:', e);
+    return [];
+  }
+}
+
+/**
+ * 保存会话列表，空列表时删除 key
+ */
+async function saveSessionList(kv, list) {
+  try {
+    if (list.length) {
+      await kv.put(SESSION_LIST_KEY, JSON.stringify(list));
+    } else {
+      await kv.delete(SESSION_LIST_KEY);
+    }
+  } catch (e) {
+    console.warn('Failed to save session list:', e);
+  }
+}
+
+/**
+ * 从会话列表中移除指定 token
+ */
+async function removeFromSessionList(kv, token) {
+  try {
+    const listStr = await kv.get(SESSION_LIST_KEY);
+    if (!listStr) return;
+    const list = JSON.parse(listStr);
+    if (!Array.isArray(list)) return;
+
+    const next = list.filter(t => t !== token);
+    if (next.length !== list.length) {
+      await saveSessionList(kv, next);
+    }
+  } catch (e) {
+    console.warn('Failed to update session list:', e);
+  }
 }
 
 /**

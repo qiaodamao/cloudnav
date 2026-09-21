@@ -203,7 +203,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // 管理员登出：先通知服务端删除 token（使会话立即失效），再清理本地状态
   const logout = useCallback(() => {
+    const token = localStorage.getItem(STORAGE_KEYS.AUTH_KEY);
+    if (token) {
+      fetch(API_ENDPOINTS.AUTH, {
+        method: 'DELETE',
+        headers: { 'x-auth-password': token },
+      }).catch(() => {}); // 服务端删除失败不阻塞本地登出
+    }
     authExpiredRef.current = false;
     localStorage.removeItem(STORAGE_KEYS.AUTH_KEY);
     dispatch({ type: 'SET_AUTH_EXPIRED', payload: false });

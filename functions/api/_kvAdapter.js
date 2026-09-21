@@ -33,7 +33,7 @@ export function getCorsHeaders(env, request) {
   }
   return {
     'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, x-auth-password',
     'Access-Control-Max-Age': '86400',
     'Vary': 'Origin',
